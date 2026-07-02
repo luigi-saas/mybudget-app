@@ -83,3 +83,5 @@ page) but **not** billing. To actually charge the $9/$29 plans shown on the
 landing page, wire in Stripe Checkout + a webhook that writes a `plan` field
 onto `users/{uid}`, then gate features (e.g. unlimited savings goals) behind
 that field. Happy to build that next if useful.
+
+DONE
