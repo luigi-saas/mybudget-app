@@ -1,4 +1,5 @@
 import { ReactNode } from "react";
+import { getMessages } from "next-intl/server";
 import { NextIntlClientProvider } from "next-intl";
 
 export async function generateStaticParams() {
@@ -7,16 +8,14 @@ export async function generateStaticParams() {
 
 export default async function LocaleLayout({
   children,
-  params,
 }: {
   children: ReactNode;
-  params: { locale: "en" | "fr" | "ar" };
 }) {
-  const messages = (await import(`../../messages/${params.locale}.json`)).default;
+  const { locale, messages } = await getMessages();
 
   return (
-    <NextIntlClientProvider locale={params.locale} messages={messages}>
-      <div dir={params.locale === "ar" ? "rtl" : "ltr"}>{children}</div>
+    <NextIntlClientProvider locale={locale} messages={messages}>
+      <div dir={locale === "ar" ? "rtl" : "ltr"}>{children}</div>
     </NextIntlClientProvider>
   );
 }

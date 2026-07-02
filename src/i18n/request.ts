@@ -1,7 +1,5 @@
-import type { NextRequest } from "next/server";
+import { getRequestConfig } from "next-intl/server";
 
-export default function requestConfig(request: NextRequest) {
-  return {
-    locale: request.nextUrl.locale ?? "en",
-  };
-}
+export default getRequestConfig(({ locale }) => ({
+  locale: locale ?? "en",
+}));
