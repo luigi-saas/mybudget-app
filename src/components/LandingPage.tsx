@@ -49,7 +49,7 @@ const promoItems = [
 
 const plans = [
   {
-    nameKey: "plan.starter",
+    nameKey: "plan.starter.name",
     price: "Free",
     period: "",
     taglineKey: "plan.starter.tagline",
@@ -63,7 +63,7 @@ const plans = [
     highlighted: false,
   },
   {
-    nameKey: "plan.personal",
+    nameKey: "plan.personal.name",
     price: "$9",
     period: "/month",
     taglineKey: "plan.personal.tagline",
@@ -77,7 +77,7 @@ const plans = [
     highlighted: true,
   },
   {
-    nameKey: "plan.business",
+    nameKey: "plan.business.name",
     price: "$29",
     period: "/month",
     taglineKey: "plan.business.tagline",

@@ -1,0 +1,550 @@
+diff --git a/src/messages/en.json b/src/messages/en.json
+--- a/src/messages/en.json
++++ b/src/messages/en.json
+@@ -1,65 +1,105 @@
+ {
+-  "brand.name": "Budgetly",
+-  "brand.tagline": "Money planning that feels calm",
+-  "header.signIn": "Sign in",
+-  "header.getStarted": "Get started",
+-  "header.language": "Language",
+-  "hero.badge": "Built for modern finance teams",
+-  "hero.title": "Your next budget app should feel premium from day one.",
+-  "hero.description": "Budgetly is designed for people who want clarity, control, and confidence in every financial decision. One dashboard for income, bills, spending, and goals.",
+-  "hero.launch": "Launch your budget",
+-  "hero.demo": "Explore demo",
+-  "stats.monthlyBudget": "Monthly budget tracked",
+-  "stats.onboardedUsers": "Users onboarded",
+-  "stats.savingsGrowth": "Average savings growth",
+-  "section.headline": "A premium budgeting experience built for scale.",
+-  "section.subline": "Move beyond spreadsheets with an intelligent, mobile-ready workflow that keeps you on track every month.",
+-  "section.meta": "Fast setup · Real-time clarity · Elegant controls",
+-  "feature.fixed.title": "Fixed charges",
+-  "feature.fixed.text": "Rent, bills, subscriptions — set a monthly cap once and track it automatically.",
+-  "feature.variable.title": "Variable spending",
+-  "feature.variable.text": "Groceries, fuel, family, going out — log expenses in two taps as they happen.",
+-  "feature.savings.title": "Savings goals",
+-  "feature.savings.text": "Give every goal a target and a source, and watch the progress bar fill up.",
+-  "feature.overview.title": "One clear overview",
+-  "feature.overview.text": "Budget, spent, remaining, and saved — the four numbers that actually matter.",
+-  "promo.headline": "Turn monthly planning into dependable results.",
+-  "promo.text": "Budgetly replaces complex trackers with clear categories, automated rollovers, and built-in savings planning so you can focus on growth.",
+-  "promo.track": "Track every account",
+-  "promo.trackText": "A single source of truth for income, spending, and obligations.",
+-  "promo.forecast": "Forecast cash flow",
+-  "promo.forecastText": "Know what you can safely spend across the whole month.",
+-  "promo.protect": "Protect goals",
+-  "promo.protectText": "Keep savings ahead of recurring payments and big events.",
+-  "promo.notify": "Stay notified",
+-  "promo.notifyText": "Smart alerts for overspending, due dates, and budget gaps.",
+-  "pricing.headline": "Premium pricing for professionals.",
+-  "pricing.text": "Start with the free plan, then upgrade when your budget requires smarter insights and team-ready tools.",
+-  "pricing.meta": "No hidden fees · Cancel anytime · Secure by default",
+-  "plan.starter": "Starter",
+-  "plan.personal": "Personal",
+-  "plan.business": "Business",
+-  "plan.starter.tagline": "For one person keeping it simple.",
+-  "plan.personal.tagline": "For a full household budget.",
+-  "plan.business.tagline": "For teams tracking shared budgets.",
+-  "plan.starter.feature1": "1 account",
+-  "plan.starter.feature2": "Unlimited categories",
+-  "plan.starter.feature3": "Unlimited expenses",
+-  "plan.starter.feature4": "3 savings goals",
+-  "plan.personal.feature1": "Everything in Starter",
+-  "plan.personal.feature2": "Unlimited savings goals",
+-  "plan.personal.feature3": "Shared household categories",
+-  "plan.personal.feature4": "Priority support",
+-  "plan.business.feature1": "Everything in Personal",
+-  "plan.business.feature2": "Multi-user access",
+-  "plan.business.feature3": "Monthly export",
+-  "plan.business.feature4": "Dedicated onboarding",
+-  "plan.cta.start": "Start free",
+-  "plan.cta.personal": "Start Personal",
+-  "plan.cta.business": "Talk to us",
+-  "footer.copy": "Budgetly © {year}. Built for modern finance teams.",
+-  "version.label": "v{version}",
+-  "language.en": "English",
+-  "language.fr": "Français",
+-  "language.ar": "العربية"
++  "brand": {
++    "name": "Budgetly",
++    "tagline": "Money planning that feels calm"
++  },
++  "header": {
++    "signIn": "Sign in",
++    "getStarted": "Get started",
++    "language": "Language"
++  },
++  "hero": {
++    "badge": "Built for modern finance teams",
++    "title": "Your next budget app should feel premium from day one.",
++    "description": "Budgetly is designed for people who want clarity, control, and confidence in every financial decision. One dashboard for income, bills, spending, and goals.",
++    "launch": "Launch your budget",
++    "demo": "Explore demo"
++  },
++  "stats": {
++    "monthlyBudget": "Monthly budget tracked",
++    "onboardedUsers": "Users onboarded",
++    "savingsGrowth": "Average savings growth"
++  },
++  "section": {
++    "headline": "A premium budgeting experience built for scale.",
++    "subline": "Move beyond spreadsheets with an intelligent, mobile-ready workflow that keeps you on track every month.",
++    "meta": "Fast setup · Real-time clarity · Elegant controls"
++  },
++  "feature": {
++    "fixed": {
++      "title": "Fixed charges",
++      "text": "Rent, bills, subscriptions — set a monthly cap once and track it automatically."
++    },
++    "variable": {
++      "title": "Variable spending",
++      "text": "Groceries, fuel, family, going out — log expenses in two taps as they happen."
++    },
++    "savings": {
++      "title": "Savings goals",
++      "text": "Give every goal a target and a source, and watch the progress bar fill up."
++    },
++    "overview": {
++      "title": "One clear overview",
++      "text": "Budget, spent, remaining, and saved — the four numbers that actually matter."
++    }
++  },
++  "promo": {
++    "headline": "Turn monthly planning into dependable results.",
++    "text": "Budgetly replaces complex trackers with clear categories, automated rollovers, and built-in savings planning so you can focus on growth.",
++    "track": "Track every account",
++    "trackText": "A single source of truth for income, spending, and obligations.",
++    "forecast": "Forecast cash flow",
++    "forecastText": "Know what you can safely spend across the whole month.",
++    "protect": "Protect goals",
++    "protectText": "Keep savings ahead of recurring payments and big events.",
++    "notify": "Stay notified",
++    "notifyText": "Smart alerts for overspending, due dates, and budget gaps."
++  },
++  "pricing": {
++    "headline": "Premium pricing for professionals.",
++    "text": "Start with the free plan, then upgrade when your budget requires smarter insights and team-ready tools.",
++    "meta": "No hidden fees · Cancel anytime · Secure by default"
++  },
++  "plan": {
++    "starter": {
++      "name": "Starter",
++      "tagline": "For one person keeping it simple.",
++      "feature1": "1 account",
++      "feature2": "Unlimited categories",
++      "feature3": "Unlimited expenses",
++      "feature4": "3 savings goals"
++    },
++    "personal": {
++      "name": "Personal",
++      "tagline": "For a full household budget.",
++      "feature1": "Everything in Starter",
++      "feature2": "Unlimited savings goals",
++      "feature3": "Shared household categories",
++      "feature4": "Priority support"
++    },
++    "business": {
++      "name": "Business",
++      "tagline": "For teams tracking shared budgets.",
++      "feature1": "Everything in Personal",
++      "feature2": "Multi-user access",
++      "feature3": "Monthly export",
++      "feature4": "Dedicated onboarding"
++    },
++    "cta": {
++      "start": "Start free",
++      "personal": "Start Personal",
++      "business": "Talk to us"
++    }
++  },
++  "footer": {
++    "copy": "Budgetly © {year}. Built for modern finance teams."
++  },
++  "version": {
++    "label": "v{version}"
++  },
++  "language": {
++    "en": "English",
++    "fr": "Français",
++    "ar": "العربية"
++  }
+ }
+
+diff --git a/src/messages/fr.json b/src/messages/fr.json
+--- a/src/messages/fr.json
++++ b/src/messages/fr.json
+@@ -1,65 +1,105 @@
+ {
+-  "brand.name": "Budgetly",
+-  "brand.tagline": "La gestion d'argent en toute sérénité",
+-  "header.signIn": "Se connecter",
+-  "header.getStarted": "Commencer",
+-  "header.language": "Langue",
+-  "hero.badge": "Conçu pour les équipes financières modernes",
+-  "hero.title": "Votre prochaine appli budget doit être premium dès le premier jour.",
+-  "hero.description": "Budgetly est conçu pour ceux qui veulent de la clarté, du contrôle et de la confiance dans chaque décision financière. Un seul tableau de bord pour revenus, factures, dépenses et objectifs.",
+-  "hero.launch": "Lancer mon budget",
+-  "hero.demo": "Découvrir la démo",
+-  "stats.monthlyBudget": "Budget mensuel suivi",
+-  "stats.onboardedUsers": "Utilisateurs onboardés",
+-  "stats.savingsGrowth": "Croissance moyenne des économies",
+-  "section.headline": "Une expérience de budgétisation premium et évolutive.",
+-  "section.subline": "Passez au-delà des tableaux avec un workflow intelligent, mobile et qui vous garde sur la bonne voie chaque mois.",
+-  "section.meta": "Installation rapide · Clarté en temps réel · Contrôles élégants",
+-  "feature.fixed.title": "Charges fixes",
+-  "feature.fixed.text": "Loyer, factures, abonnements — fixez un plafond mensuel une fois et suivez-le automatiquement.",
+-  "feature.variable.title": "Dépenses variables",
+-  "feature.variable.text": "Courses, carburant, famille, sorties — enregistrez les dépenses en deux clics quand elles arrivent.",
+-  "feature.savings.title": "Objectifs d'épargne",
+-  "feature.savings.text": "Donnez à chaque objectif une cible et une source, et regardez la barre de progression monter.",
+-  "feature.overview.title": "Une vue claire",
+-  "feature.overview.text": "Budget, dépensé, restant et épargné — les quatre chiffres qui comptent vraiment.",
+-  "promo.headline": "Faites de la planification mensuelle un résultat fiable.",
+-  "promo.text": "Budgetly remplace les trackers complexes par des catégories claires, des reports automatiques et une planification d'épargne intégrée pour vous laisser vous concentrer sur la croissance.",
+-  "promo.track": "Suivez tous vos comptes",
+-  "promo.trackText": "Une source unique de vérité pour revenus, dépenses et obligations.",
+-  "promo.forecast": "Anticipez votre flux de trésorerie",
+-  "promo.forecastText": "Sachez ce que vous pouvez dépenser en toute sécurité chaque mois.",
+-  "promo.protect": "Protégez vos objectifs",
+-  "promo.protectText": "Gardez l'épargne en avance sur les paiements récurrents et les grands moments.",
+-  "promo.notify": "Restez alerté",
+-  "promo.notifyText": "Alertes intelligentes pour les dépassements, les échéances et les trous de budget.",
+-  "pricing.headline": "Tarification premium pour les pros.",
+-  "pricing.text": "Commencez avec le plan gratuit, puis passez à l'offre pro quand votre budget exige des insights plus intelligents et des outils collaboratifs.",
+-  "pricing.meta": "Pas de frais cachés · Annulation facile · Sécurisé par défaut",
+-  "plan.starter": "Starter",
+-  "plan.personal": "Personnel",
+-  "plan.business": "Business",
+-  "plan.starter.tagline": "Pour une personne qui veut du simple.",
+-  "plan.personal.tagline": "Pour un budget complet de foyer.",
+-  "plan.business.tagline": "Pour les équipes qui suivent des budgets partagés.",
+-  "plan.starter.feature1": "1 compte",
+-  "plan.starter.feature2": "Catégories illimitées",
+-  "plan.starter.feature3": "Dépenses illimitées",
+-  "plan.starter.feature4": "3 objectifs d'épargne",
+-  "plan.personal.feature1": "Tout Starter",
+-  "plan.personal.feature2": "Objectifs d'épargne illimités",
+-  "plan.personal.feature3": "Catégories partagées",
+-  "plan.personal.feature4": "Support prioritaire",
+-  "plan.business.feature1": "Tout Personal",
+-  "plan.business.feature2": "Accès multi-utilisateur",
+-  "plan.business.feature3": "Export mensuel",
+-  "plan.business.feature4": "Onboarding dédié",
+-  "plan.cta.start": "Démarrer gratis",
+-  "plan.cta.personal": "Passer à Personal",
+-  "plan.cta.business": "Contactez-nous",
+-  "footer.copy": "Budgetly © {year}. Conçu pour les équipes financières modernes.",
+-  "version.label": "v{version}",
+-  "language.en": "English",
+-  "language.fr": "Français",
+-  "language.ar": "العربية"
++  "brand": {
++    "name": "Budgetly",
++    "tagline": "La gestion d'argent en toute sérénité"
++  },
++  "header": {
++    "signIn": "Se connecter",
++    "getStarted": "Commencer",
++    "language": "Langue"
++  },
++  "hero": {
++    "badge": "Conçu pour les équipes financières modernes",
++    "title": "Votre prochaine appli budget doit être premium dès le premier jour.",
++    "description": "Budgetly est conçu pour ceux qui veulent de la clarté, du contrôle et de la confiance dans chaque décision financière. Un seul tableau de bord pour revenus, factures, dépenses et objectifs.",
++    "launch": "Lancer mon budget",
++    "demo": "Découvrir la démo"
++  },
++  "stats": {
++    "monthlyBudget": "Budget mensuel suivi",
++    "onboardedUsers": "Utilisateurs onboardés",
++    "savingsGrowth": "Croissance moyenne des économies"
++  },
++  "section": {
++    "headline": "Une expérience de budgétisation premium et évolutive.",
++    "subline": "Passez au-delà des tableaux avec un workflow intelligent, mobile et qui vous garde sur la bonne voie chaque mois.",
++    "meta": "Installation rapide · Clarté en temps réel · Contrôles élégants"
++  },
++  "feature": {
++    "fixed": {
++      "title": "Charges fixes",
++      "text": "Loyer, factures, abonnements — fixez un plafond mensuel une fois et suivez-le automatiquement."
++    },
++    "variable": {
++      "title": "Dépenses variables",
++      "text": "Courses, carburant, famille, sorties — enregistrez les dépenses en deux clics quand elles arrivent."
++    },
++    "savings": {
++      "title": "Objectifs d'épargne",
++      "text": "Donnez à chaque objectif une cible et une source, et regardez la barre de progression monter."
++    },
++    "overview": {
++      "title": "Une vue claire",
++      "text": "Budget, dépensé, restant et épargné — les quatre chiffres qui comptent vraiment."
++    }
++  },
++  "promo": {
++    "headline": "Faites de la planification mensuelle un résultat fiable.",
++    "text": "Budgetly remplace les trackers complexes par des catégories claires, des reports automatiques et une planification d'épargne intégrée pour vous laisser vous concentrer sur la croissance.",
++    "track": "Suivez tous vos comptes",
++    "trackText": "Une source unique de vérité pour revenus, dépenses et obligations.",
++    "forecast": "Anticipez votre flux de trésorerie",
++    "forecastText": "Sachez ce que vous pouvez dépenser en toute sécurité chaque mois.",
++    "protect": "Protégez vos objectifs",
++    "protectText": "Gardez l'épargne en avance sur les paiements récurrents et les grands moments.",
++    "notify": "Restez alerté",
++    "notifyText": "Alertes intelligentes pour les dépassements, les échéances et les trous de budget."
++  },
++  "pricing": {
++    "headline": "Tarification premium pour les pros.",
++    "text": "Commencez avec le plan gratuit, puis passez à l'offre pro quand votre budget exige des insights plus intelligents et des outils collaboratifs.",
++    "meta": "Pas de frais cachés · Annulation facile · Sécurisé par défaut"
++  },
++  "plan": {
++    "starter": {
++      "name": "Starter",
++      "tagline": "Pour une personne qui veut du simple.",
++      "feature1": "1 compte",
++      "feature2": "Catégories illimitées",
++      "feature3": "Dépenses illimitées",
++      "feature4": "3 objectifs d'épargne"
++    },
++    "personal": {
++      "name": "Personnel",
++      "tagline": "Pour un budget complet de foyer.",
++      "feature1": "Tout Starter",
++      "feature2": "Objectifs d'épargne illimités",
++      "feature3": "Catégories partagées",
++      "feature4": "Support prioritaire"
++    },
++    "business": {
++      "name": "Business",
++      "tagline": "Pour les équipes qui suivent des budgets partagés.",
++      "feature1": "Tout Personal",
++      "feature2": "Accès multi-utilisateur",
++      "feature3": "Export mensuel",
++      "feature4": "Onboarding dédié"
++    },
++    "cta": {
++      "start": "Démarrer gratis",
++      "personal": "Passer à Personal",
++      "business": "Contactez-nous"
++    }
++  },
++  "footer": {
++    "copy": "Budgetly © {year}. Conçu pour les équipes financières modernes."
++  },
++  "version": {
++    "label": "v{version}"
++  },
++  "language": {
++    "en": "English",
++    "fr": "Français",
++    "ar": "العربية"
++  }
+ }
+
+diff --git a/src/messages/ar.json b/src/messages/ar.json
+--- a/src/messages/ar.json
++++ b/src/messages/ar.json
+@@ -1,65 +1,105 @@
+ {
+-  "brand.name": "Budgetly",
+-  "brand.tagline": "تخطيط المال بهدوء وثقة",
+-  "header.signIn": "تسجيل الدخول",
+-  "header.getStarted": "ابدأ الآن",
+-  "header.language": "اللغة",
+-  "hero.badge": "مصمم لفرق المالية الحديثة",
+-  "hero.title": "يجب أن يكون تطبيق الميزانية الخاص بك مميزًا منذ اليوم الأول.",
+-  "hero.description": "تم تصميم Budgetly للأشخاص الذين يريدون الوضوح والتحكم والثقة في كل قرار مالي. لوحة واحدة للدخل والفواتير والمصروفات والأهداف.",
+-  "hero.launch": "ابدأ ميزانيتك",
+-  "hero.demo": "استكشف العرض التجريبي",
+-  "stats.monthlyBudget": "الميزانية الشهرية المتتبعة",
+-  "stats.onboardedUsers": "المستخدمون المنضمون",
+-  "stats.savingsGrowth": "متوسط نمو الوفورات",
+-  "section.headline": "تجربة ميزانية فاخرة قابلة للتوسّع.",
+-  "section.subline": "انتقل إلى ما هو أبعد من الجداول مع سير عمل ذكي ومتوافق مع الجوال يبقيك على المسار الصحيح كل شهر.",
+-  "section.meta": "إعداد سريع · وضوح فوري · تحكم أنيق",
+-  "feature.fixed.title": "النفقات الثابتة",
+-  "feature.fixed.text": "الإيجار والفواتير والاشتراكات — حدد حدًا شهريًا مرة واحدة وتتبعها تلقائيًا.",
+-  "feature.variable.title": "المصروفات المتغيرة",
+-  "feature.variable.text": "البقالة والوقود والعائلة والخروج — سجّل المصروفات بنقرتين عند حدوثها.",
+-  "feature.savings.title": "أهداف التوفير",
+-  "feature.savings.text": "امنح كل هدف مبلغًا ومصدرًا، وشاهد شريط التقدم يرتفع.",
+-  "feature.overview.title": "رؤية واضحة واحدة",
+-  "feature.overview.text": "الميزانية، المصروفات، المتبقي، والمُدّخر — الأرقام الأربعة المهمة فعلاً.",
+-  "promo.headline": "حوّل التخطيط الشهري إلى نتائج موثوقة.",
+-  "promo.text": "Budgetly يبدّل المتتبعات المعقدة بفئات واضحة، ترحيل تلقائي، وتخطيط توفير مدمج حتى تركز على النمو.",
+-  "promo.track": "تابع كل حساباتك",
+-  "promo.trackText": "مصدر واحد للحقيقة للدخل والمصروفات والالتزامات.",
+-  "promo.forecast": "تنبأ بالتدفق النقدي",
+-  "promo.forecastText": "اعرف ما يمكنك صرفه بأمان خلال الشهر.",
+-  "promo.protect": "حافظ على أهدافك",
+-  "promo.protectText": "اجعل التوفير متقدمًا على المدفوعات الدورية والأحداث الكبيرة.",
+-  "promo.notify": "ابقَ على اطلاع",
+-  "promo.notifyText": "تنبيهات ذكية للتجاوزات والمواعيد النهائية وفجوات الميزانية.",
+-  "pricing.headline": "تسعير مميز للمحترفين.",
+-  "pricing.text": "ابدأ بالخطة المجانية، ثم انتقل إلى الإصدار الاحترافي عندما يتطلب ميزانيتك رؤى أذكى وأدوات جاهزة للفريق.",
+-  "pricing.meta": "بدون رسوم مخفية · الإلغاء في أي وقت · آمن بشكل افتراضي",
+-  "plan.starter": "Starter",
+-  "plan.personal": "Personal",
+-  "plan.business": "Business",
+-  "plan.starter.tagline": "لشخص واحد يريد البساطة.",
+-  "plan.personal.tagline": "لميزانية كاملة للأسرة.",
+-  "plan.business.tagline": "للفرق التي تتبع ميزانيات مشتركة.",
+-  "plan.starter.feature1": "حساب واحد",
+-  "plan.starter.feature2": "فئات غير محدودة",
+-  "plan.starter.feature3": "مصروفات غير محدودة",
+-  "plan.starter.feature4": "3 أهداف توفير",
+-  "plan.personal.feature1": "كل شيء في Starter",
+-  "plan.personal.feature2": "أهداف توفير غير محدودة",
+-  "plan.personal.feature3": "فئات مشتركة",
+-  "plan.personal.feature4": "دعم أولوي",
+-  "plan.business.feature1": "كل شيء في Personal",
+-  "plan.business.feature2": "وصول متعدد المستخدمين",
+-  "plan.business.feature3": "تصدير شهري",
+-  "plan.business.feature4": "تهيئة مخصصة",
+-  "plan.cta.start": "ابدأ مجانًا",
+-  "plan.cta.personal": "انتقل إلى Personal",
+-  "plan.cta.business": "تواصل معنا",
+-  "footer.copy": "Budgetly © {year}. مصمم لفرق المالية الحديثة.",
+-  "version.label": "v{version}",
+-  "language.en": "English",
+-  "language.fr": "Français",
+-  "language.ar": "العربية"
++  "brand": {
++    "name": "Budgetly",
++    "tagline": "تخطيط المال بهدوء وثقة"
++  },
++  "header": {
++    "signIn": "تسجيل الدخول",
++    "getStarted": "ابدأ الآن",
++    "language": "اللغة"
++  },
++  "hero": {
++    "badge": "مصمم لفرق المالية الحديثة",
++    "title": "يجب أن يكون تطبيق الميزانية الخاص بك مميزًا منذ اليوم الأول.",
++    "description": "تم تصميم Budgetly للأشخاص الذين يريدون الوضوح والتحكم والثقة في كل قرار مالي. لوحة واحدة للدخل والفواتير والمصروفات والأهداف.",
++    "launch": "ابدأ ميزانيتك",
++    "demo": "استكشف العرض التجريبي"
++  },
++  "stats": {
++    "monthlyBudget": "الميزانية الشهرية المتتبعة",
++    "onboardedUsers": "المستخدمون المنضمون",
++    "savingsGrowth": "متوسط نمو الوفورات"
++  },
++  "section": {
++    "headline": "تجربة ميزانية فاخرة قابلة للتوسّع.",
++    "subline": "انتقل إلى ما هو أبعد من الجداول مع سير عمل ذكي ومتوافق مع الجوال يبقيك على المسار الصحيح كل شهر.",
++    "meta": "إعداد سريع · وضوح فوري · تحكم أنيق"
++  },
++  "feature": {
++    "fixed": {
++      "title": "النفقات الثابتة",
++      "text": "الإيجار والفواتير والاشتراكات — حدد حدًا شهريًا مرة واحدة وتتبعها تلقائيًا."
++    },
++    "variable": {
++      "title": "المصروفات المتغيرة",
++      "text": "البقالة والوقود والعائلة والخروج — سجّل المصروفات بنقرتين عند حدوثها."
++    },
++    "savings": {
++      "title": "أهداف التوفير",
++      "text": "امنح كل هدف مبلغًا ومصدرًا، وشاهد شريط التقدم يرتفع."
++    },
++    "overview": {
++      "title": "رؤية واضحة واحدة",
++      "text": "الميزانية، المصروفات، المتبقي، والمُدّخر — الأرقام الأربعة المهمة فعلاً."
++    }
++  },
++  "promo": {
++    "headline": "حوّل التخطيط الشهري إلى نتائج موثوقة.",
++    "text": "Budgetly يبدّل المتتبعات المعقدة بفئات واضحة، ترحيل تلقائي، وتخطيط توفير مدمج حتى تركز على النمو.",
++    "track": "تابع كل حساباتك",
++    "trackText": "مصدر واحد للحقيقة للدخل والمصروفات والالتزامات.",
++    "forecast": "تنبأ بالتدفق النقدي",
++    "forecastText": "اعرف ما يمكنك صرفه بأمان خلال الشهر.",
++    "protect": "حافظ على أهدافك",
++    "protectText": "اجعل التوفير متقدمًا على المدفوعات الدورية والأحداث الكبيرة.",
++    "notify": "ابقَ على اطلاع",
++    "notifyText": "تنبيهات ذكية للتجاوزات والمواعيد النهائية وفجوات الميزانية."
++  },
++  "pricing": {
++    "headline": "تسعير مميز للمحترفين.",
++    "text": "ابدأ بالخطة المجانية، ثم انتقل إلى الإصدار الاحترافي عندما يتطلب ميزانيتك رؤى أذكى وأدوات جاهزة للفريق.",
++    "meta": "بدون رسوم مخفية · الإلغاء في أي وقت · آمن بشكل افتراضي"
++  },
++  "plan": {
++    "starter": {
++      "name": "Starter",
++      "tagline": "لشخص واحد يريد البساطة.",
++      "feature1": "حساب واحد",
++      "feature2": "فئات غير محدودة",
++      "feature3": "مصروفات غير محدودة",
++      "feature4": "3 أهداف توفير"
++    },
++    "personal": {
++      "name": "Personal",
++      "tagline": "لميزانية كاملة للأسرة.",
++      "feature1": "كل شيء في Starter",
++      "feature2": "أهداف توفير غير محدودة",
++      "feature3": "فئات مشتركة",
++      "feature4": "دعم أولوي"
++    },
++    "business": {
++      "name": "Business",
++      "tagline": "للفرق التي تتبع ميزانيات مشتركة.",
++      "feature1": "كل شيء في Personal",
++      "feature2": "وصول متعدد المستخدمين",
++      "feature3": "تصدير شهري",
++      "feature4": "تهيئة مخصصة"
++    },
++    "cta": {
++      "start": "ابدأ مجانًا",
++      "personal": "انتقل إلى Personal",
++      "business": "تواصل معنا"
++    }
++  },
++  "footer": {
++    "copy": "Budgetly © {year}. مصمم لفرق المالية الحديثة."
++  },
++  "version": {
++    "label": "v{version}"
++  },
++  "language": {
++    "en": "English",
++    "fr": "Français",
++    "ar": "العربية"
++  }
+ }
+
+diff --git a/src/components/LandingPage.tsx b/src/components/LandingPage.tsx
+--- a/src/components/LandingPage.tsx
++++ b/src/components/LandingPage.tsx
+@@ -49,7 +49,7 @@
+ 
+ const plans = [
+   {
+-    nameKey: "plan.starter",
++    nameKey: "plan.starter.name",
+     price: "Free",
+     period: "",
+     taglineKey: "plan.starter.tagline",
+@@ -63,7 +63,7 @@
+     highlighted: false,
+   },
+   {
+-    nameKey: "plan.personal",
++    nameKey: "plan.personal.name",
+     price: "$9",
+     period: "/month",
+     taglineKey: "plan.personal.tagline",
+@@ -77,7 +77,7 @@
+     highlighted: true,
+   },
+   {
+-    nameKey: "plan.business",
++    nameKey: "plan.business.name",
+     price: "$29",
+     period: "/month",
+     taglineKey: "plan.business.tagline",
+     
