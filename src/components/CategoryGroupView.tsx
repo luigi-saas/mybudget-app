@@ -8,8 +8,9 @@ import {
   addTransaction,
   deleteCategory,
   deleteTransaction,
+  seedNotionTemplate,
 } from "@/lib/firestore";
-import type { CategoryColor, Group, IconKey } from "@/lib/types";
+import type { Account, CategoryColor, Group, IconKey } from "@/lib/types";
 import CategoryCard from "./CategoryCard";
 import Modal from "./Modal";
 import Icon from "./Icon";
@@ -48,7 +49,9 @@ export default function CategoryGroupView({
   const [txName, setTxName] = useState("");
   const [txAmount, setTxAmount] = useState("");
   const [txCategoryId, setTxCategoryId] = useState("");
+  const [txAccount, setTxAccount] = useState<Account>("wallet");
   const [txDate, setTxDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [importing, setImporting] = useState(false);
 
   async function handleAddCategory(e: FormEvent) {
     e.preventDefault();
@@ -73,11 +76,22 @@ export default function CategoryGroupView({
       amount: Number(txAmount),
       categoryId: txCategoryId,
       group,
+      account: txAccount,
       date: txDate,
     });
     setTxName("");
     setTxAmount("");
     setTxModalOpen(false);
+  }
+
+  async function handleImportTemplate() {
+    if (!user) return;
+    setImporting(true);
+    try {
+      await seedNotionTemplate(user.uid);
+    } finally {
+      setImporting(false);
+    }
   }
 
   return (
@@ -107,8 +121,16 @@ export default function CategoryGroupView({
       {categories.length === 0 ? (
         <div className="mt-6 rounded-xl border border-dashed border-border bg-surface p-8 text-center">
           <p className="text-sm text-muted">
-            No categories yet. Add one to start budgeting.
+            No categories yet. Add one manually, or import your original
+            Notion budget template in one click.
           </p>
+          <button
+            onClick={handleImportTemplate}
+            disabled={importing}
+            className="mt-4 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-dark disabled:opacity-60"
+          >
+            {importing ? "Importing…" : "Import Notion template"}
+          </button>
         </div>
       ) : (
         <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -139,7 +161,8 @@ export default function CategoryGroupView({
                   <div>
                     <p className="text-sm font-medium text-ink">{t.name}</p>
                     <p className="text-xs text-muted">
-                      {cat?.name || "Uncategorized"} · {t.date}
+                      {cat?.name || "Uncategorized"} · {t.date} ·{" "}
+                      <span className="capitalize">{t.account}</span>
                     </p>
                   </div>
                 </div>
@@ -262,6 +285,22 @@ export default function CategoryGroupView({
               </option>
             ))}
           </select>
+          <div className="flex gap-2">
+            {(["wallet", "home"] as Account[]).map((a) => (
+              <button
+                type="button"
+                key={a}
+                onClick={() => setTxAccount(a)}
+                className={`flex-1 rounded-lg border py-2 text-sm font-medium capitalize ${
+                  txAccount === a
+                    ? "border-primary bg-primary-light text-primary-dark"
+                    : "border-border text-muted"
+                }`}
+              >
+                {a}
+              </button>
+            ))}
+          </div>
           <input
             type="date"
             value={txDate}

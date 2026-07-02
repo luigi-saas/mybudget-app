@@ -1,5 +1,7 @@
 export type Group = "fixed" | "variable";
 
+export type Account = "home" | "wallet";
+
 export interface Category {
   id: string;
   name: string;
@@ -7,6 +9,7 @@ export interface Category {
   budget: number;
   color: CategoryColor;
   icon: IconKey;
+  recurring?: boolean;
   createdAt: number;
 }
 
@@ -16,8 +19,19 @@ export interface Transaction {
   amount: number;
   categoryId: string;
   group: Group;
+  account: Account;
   date: string; // ISO date, e.g. 2026-06-23
   note?: string;
+  createdAt: number;
+}
+
+export interface Income {
+  id: string;
+  name: string;
+  amount: number;
+  account: Account;
+  date: string;
+  recurring: boolean;
   createdAt: number;
 }
 
@@ -61,4 +75,7 @@ export type IconKey =
   | "car"
   | "piggy"
   | "plane"
-  | "shield";
+  | "shield"
+  | "wallet"
+  | "bank"
+  | "alert";

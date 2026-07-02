@@ -8,6 +8,7 @@ import { useAuth } from "@/lib/auth-context";
 
 const links: { href: string; label: string; icon: IconKey }[] = [
   { href: "/dashboard", label: "Overview", icon: "sparkles" },
+  { href: "/income", label: "Income", icon: "wallet" },
   { href: "/fixed", label: "Fixed", icon: "bolt" },
   { href: "/variable", label: "Variable", icon: "cart" },
   { href: "/savings", label: "Savings", icon: "piggy" },

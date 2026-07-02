@@ -17,6 +17,9 @@ const paths: Record<IconKey, JSX.Element> = {
   piggy: <path d="M4 12a6 6 0 0 1 6-6h4a6 6 0 0 1 6 4h1v4h-2a6 6 0 0 1-3 3v3H12v-2H9v2H6v-3a6 6 0 0 1-2-5Zm10-5V5" />,
   plane: <path d="m2 16 20-8-8 20-3-8-8-3Z" />,
   shield: <path d="M12 2 4 5v6c0 5 3.4 8.7 8 11 4.6-2.3 8-6 8-11V5l-8-3Z" />,
+  wallet: <path d="M3 7a2 2 0 0 1 2-2h13a1 1 0 0 1 1 1v2M3 7v11a2 2 0 0 0 2 2h14a1 1 0 0 0 1-1v-3M3 7l3-3h9M16 14h.01M16 11h5v6h-5a3 3 0 0 1 0-6Z" />,
+  bank: <path d="M3 10 12 4l9 6M4 10v10h16V10M9 14v4M12 14v4M15 14v4M2 20h20" />,
+  alert: <path d="M12 9v4M12 17h.01M10.3 3.9 2.5 18a1.8 1.8 0 0 0 1.5 2.7h16a1.8 1.8 0 0 0 1.5-2.7L13.7 3.9a1.8 1.8 0 0 0-3.4 0Z" />,
 };
 
 export default function Icon({

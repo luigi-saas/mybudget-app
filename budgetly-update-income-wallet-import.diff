@@ -1,0 +1,781 @@
+diff --git a/src/app/(app)/dashboard/page.tsx b/src/app/(app)/dashboard/page.tsx
+index 0fbfd5a..01e1ca6 100644
+--- a/src/app/(app)/dashboard/page.tsx
++++ b/src/app/(app)/dashboard/page.tsx
+@@ -1,12 +1,18 @@
+ "use client";
+ 
++import Link from "next/link";
++import { useAuth } from "@/lib/auth-context";
+ import { useBudgetData } from "@/lib/useBudgetData";
++import { seedNotionTemplate } from "@/lib/firestore";
++import { useState } from "react";
+ import StatCard from "@/components/StatCard";
+ import CategoryCard from "@/components/CategoryCard";
+-import Link from "next/link";
++import Icon from "@/components/Icon";
+ 
+ export default function DashboardPage() {
++  const { user } = useAuth();
+   const {
++    categories,
+     fixedCategories,
+     variableCategories,
+     spentByCategory,
+@@ -15,25 +21,61 @@ export default function DashboardPage() {
+     totalSpent,
+     totalSavingsCurrent,
+     totalSavingsTarget,
++    totalIncome,
++    home,
++    wallet,
++    alerts,
+   } = useBudgetData();
+ 
++  const [importing, setImporting] = useState(false);
+   const totalBudget = totalFixedBudget + totalVariableBudget;
+-  const remaining = totalBudget - totalSpent;
++  const remaining = totalIncome - totalSpent;
++  const netAfterSavings = remaining - (totalSavingsTarget - totalSavingsCurrent);
+   const topCategories = [...fixedCategories, ...variableCategories].slice(0, 4);
+ 
++  async function handleImport() {
++    if (!user) return;
++    setImporting(true);
++    try {
++      await seedNotionTemplate(user.uid);
++    } finally {
++      setImporting(false);
++    }
++  }
++
+   return (
+     <main className="mx-auto max-w-5xl px-5 py-8">
+       <h1 className="text-2xl font-bold text-ink">Overview</h1>
+       <p className="mt-1 text-sm text-muted">Here&apos;s where your month stands.</p>
+ 
++      {/* Budget alerts */}
++      {alerts.length > 0 && (
++        <div className="mt-5 space-y-2">
++          {alerts.map((a) => (
++            <div
++              key={a.category.id}
++              className="flex items-center gap-3 rounded-xl border border-warn/30 bg-warn-light px-4 py-3"
++            >
++              <Icon name="alert" size={18} className="shrink-0 text-warn" />
++              <p className="text-sm text-ink">
++                <span className="font-semibold">{a.category.name}</span> is at{" "}
++                {Math.round(a.pct)}% of its {a.category.budget.toLocaleString()} MAD budget
++                {a.pct >= 100 ? " — over budget." : "."}
++              </p>
++            </div>
++          ))}
++        </div>
++      )}
++
++      {/* Income vs spend */}
+       <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-4">
+-        <StatCard label="Monthly budget" value={`${totalBudget.toLocaleString()} MAD`} icon="sparkles" color="primary" />
++        <StatCard label="Income this month" value={`${totalIncome.toLocaleString()} MAD`} icon="wallet" color="success" />
+         <StatCard label="Spent so far" value={`${totalSpent.toLocaleString()} MAD`} icon="cart" color="warn" />
+         <StatCard
+           label="Remaining"
+           value={`${remaining.toLocaleString()} MAD`}
+           icon="bolt"
+-          color={remaining < 0 ? "danger" : "success"}
++          color={remaining < 0 ? "danger" : "primary"}
+         />
+         <StatCard
+           label="Saved"
+@@ -43,6 +85,42 @@ export default function DashboardPage() {
+         />
+       </div>
+ 
++      {/* Home vs Wallet accounts */}
++      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
++        <div className="rounded-xl border border-border bg-surface p-5 shadow-card">
++          <div className="flex items-center gap-3">
++            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-light text-primary-dark">
++              <Icon name="home" size={18} />
++            </div>
++            <div>
++              <p className="text-sm font-medium text-ink">Home</p>
++              <p className="text-xs text-muted">
++                {home.income.toLocaleString()} in · {home.spent.toLocaleString()} out
++              </p>
++            </div>
++          </div>
++          <p className={`mt-3 text-2xl font-bold ${home.balance < 0 ? "text-danger" : "text-ink"}`}>
++            {home.balance.toLocaleString()} MAD
++          </p>
++        </div>
++        <div className="rounded-xl border border-border bg-surface p-5 shadow-card">
++          <div className="flex items-center gap-3">
++            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-violet-light text-violet">
++              <Icon name="bank" size={18} />
++            </div>
++            <div>
++              <p className="text-sm font-medium text-ink">Wallet</p>
++              <p className="text-xs text-muted">
++                {wallet.income.toLocaleString()} in · {wallet.spent.toLocaleString()} out
++              </p>
++            </div>
++          </div>
++          <p className={`mt-3 text-2xl font-bold ${wallet.balance < 0 ? "text-danger" : "text-ink"}`}>
++            {wallet.balance.toLocaleString()} MAD
++          </p>
++        </div>
++      </div>
++
+       <div className="mt-8 flex items-center justify-between">
+         <h2 className="text-lg font-semibold text-ink">Your categories</h2>
+         <Link href="/fixed" className="text-sm font-medium text-primary">
+@@ -53,8 +131,16 @@ export default function DashboardPage() {
+       {topCategories.length === 0 ? (
+         <div className="mt-4 rounded-xl border border-dashed border-border bg-surface p-8 text-center">
+           <p className="text-sm text-muted">
+-            No categories yet. Head to Fixed or Variable to add your first one.
++            No categories yet. Import your original Notion budget in one
++            click, or add categories manually from Fixed / Variable.
+           </p>
++          <button
++            onClick={handleImport}
++            disabled={importing}
++            className="mt-4 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-dark disabled:opacity-60"
++          >
++            {importing ? "Importing…" : "Import Notion template"}
++          </button>
+         </div>
+       ) : (
+         <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+diff --git a/src/app/(app)/income/page.tsx b/src/app/(app)/income/page.tsx
+new file mode 100644
+index 0000000..6c3ea51
+--- /dev/null
++++ b/src/app/(app)/income/page.tsx
+@@ -0,0 +1,162 @@
++"use client";
++
++import { useState, FormEvent } from "react";
++import { useAuth } from "@/lib/auth-context";
++import { useBudgetData } from "@/lib/useBudgetData";
++import { addIncome, deleteIncome } from "@/lib/firestore";
++import type { Account } from "@/lib/types";
++import Modal from "@/components/Modal";
++import Icon from "@/components/Icon";
++import StatCard from "@/components/StatCard";
++
++export default function IncomePage() {
++  const { user } = useAuth();
++  const { incomes, totalIncome, home, wallet } = useBudgetData();
++  const [open, setOpen] = useState(false);
++  const [name, setName] = useState("");
++  const [amount, setAmount] = useState("");
++  const [account, setAccount] = useState<Account>("wallet");
++  const [recurring, setRecurring] = useState(true);
++  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
++
++  async function handleAdd(e: FormEvent) {
++    e.preventDefault();
++    if (!user || !name || !amount) return;
++    await addIncome(user.uid, {
++      name,
++      amount: Number(amount),
++      account,
++      date,
++      recurring,
++    });
++    setName("");
++    setAmount("");
++    setOpen(false);
++  }
++
++  return (
++    <main className="mx-auto max-w-5xl px-5 py-8">
++      <div className="flex items-center justify-between">
++        <div>
++          <h1 className="text-2xl font-bold text-ink">Income</h1>
++          <p className="mt-1 text-sm text-muted">
++            What comes in, split between Home and Wallet — the same way your
++            original budget tracked it.
++          </p>
++        </div>
++        <button
++          onClick={() => setOpen(true)}
++          className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-dark"
++        >
++          + Income
++        </button>
++      </div>
++
++      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
++        <StatCard label="Total income" value={`${totalIncome.toLocaleString()} MAD`} icon="wallet" color="primary" />
++        <StatCard label="Home balance" value={`${home.balance.toLocaleString()} MAD`} icon="home" color={home.balance < 0 ? "danger" : "success"} />
++        <StatCard label="Wallet balance" value={`${wallet.balance.toLocaleString()} MAD`} icon="bank" color={wallet.balance < 0 ? "danger" : "violet"} />
++      </div>
++
++      {incomes.length === 0 ? (
++        <div className="mt-6 rounded-xl border border-dashed border-border bg-surface p-8 text-center">
++          <p className="text-sm text-muted">
++            No income logged yet. Add your salary or side income, or import
++            the Notion template from the Fixed page to seed the original
++            3,100 Home / 5,400 Wallet split.
++          </p>
++        </div>
++      ) : (
++        <div className="mt-6 divide-y divide-border rounded-xl border border-border bg-surface">
++          {incomes.map((i) => (
++            <div key={i.id} className="flex items-center justify-between px-5 py-3">
++              <div className="flex items-center gap-3">
++                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-success-light text-success">
++                  <Icon name="wallet" size={16} />
++                </div>
++                <div>
++                  <p className="text-sm font-medium text-ink">{i.name}</p>
++                  <p className="text-xs text-muted">
++                    <span className="capitalize">{i.account}</span> · {i.date}
++                    {i.recurring ? " · recurring" : ""}
++                  </p>
++                </div>
++              </div>
++              <div className="flex items-center gap-3">
++                <span className="text-sm font-semibold text-success">
++                  +{i.amount.toLocaleString()} MAD
++                </span>
++                <button
++                  onClick={() => user && deleteIncome(user.uid, i.id)}
++                  className="text-xs text-muted hover:text-danger"
++                  aria-label={`Delete ${i.name}`}
++                >
++                  ✕
++                </button>
++              </div>
++            </div>
++          ))}
++        </div>
++      )}
++
++      <Modal open={open} onClose={() => setOpen(false)} title="New income">
++        <form onSubmit={handleAdd} className="space-y-3">
++          <input
++            placeholder="Source (e.g. Salary, Freelance)"
++            value={name}
++            onChange={(e) => setName(e.target.value)}
++            required
++            className="w-full rounded-lg border border-border bg-bg px-4 py-2.5 text-sm outline-none focus:border-primary"
++          />
++          <input
++            type="number"
++            placeholder="Amount (MAD)"
++            value={amount}
++            onChange={(e) => setAmount(e.target.value)}
++            required
++            min="0"
++            className="w-full rounded-lg border border-border bg-bg px-4 py-2.5 text-sm outline-none focus:border-primary"
++          />
++          <div className="flex gap-2">
++            {(["wallet", "home"] as Account[]).map((a) => (
++              <button
++                type="button"
++                key={a}
++                onClick={() => setAccount(a)}
++                className={`flex-1 rounded-lg border py-2 text-sm font-medium capitalize ${
++                  account === a
++                    ? "border-primary bg-primary-light text-primary-dark"
++                    : "border-border text-muted"
++                }`}
++              >
++                {a}
++              </button>
++            ))}
++          </div>
++          <input
++            type="date"
++            value={date}
++            onChange={(e) => setDate(e.target.value)}
++            required
++            className="w-full rounded-lg border border-border bg-bg px-4 py-2.5 text-sm outline-none focus:border-primary"
++          />
++          <label className="flex items-center gap-2 text-sm text-ink">
++            <input
++              type="checkbox"
++              checked={recurring}
++              onChange={(e) => setRecurring(e.target.checked)}
++              className="h-4 w-4 rounded border-border accent-primary"
++            />
++            Repeats every month
++          </label>
++          <button
++            type="submit"
++            className="w-full rounded-lg bg-primary py-2.5 text-sm font-semibold text-white hover:bg-primary-dark"
++          >
++            Add income
++          </button>
++        </form>
++      </Modal>
++    </main>
++  );
++}
+diff --git a/src/components/AppNav.tsx b/src/components/AppNav.tsx
+index 9b33809..ef4759c 100644
+--- a/src/components/AppNav.tsx
++++ b/src/components/AppNav.tsx
+@@ -8,6 +8,7 @@ import { useAuth } from "@/lib/auth-context";
+ 
+ const links: { href: string; label: string; icon: IconKey }[] = [
+   { href: "/dashboard", label: "Overview", icon: "sparkles" },
++  { href: "/income", label: "Income", icon: "wallet" },
+   { href: "/fixed", label: "Fixed", icon: "bolt" },
+   { href: "/variable", label: "Variable", icon: "cart" },
+   { href: "/savings", label: "Savings", icon: "piggy" },
+diff --git a/src/components/CategoryCard.tsx b/src/components/CategoryCard.tsx
+index 5410d81..50a93df 100644
+--- a/src/components/CategoryCard.tsx
++++ b/src/components/CategoryCard.tsx
+@@ -28,7 +28,14 @@ export default function CategoryCard({
+             <Icon name={category.icon} />
+           </div>
+           <div>
+-            <p className="font-semibold text-ink">{category.name}</p>
++            <div className="flex items-center gap-1.5">
++              <p className="font-semibold text-ink">{category.name}</p>
++              {category.recurring && (
++                <span className="rounded-full bg-bg px-1.5 py-0.5 text-[10px] font-medium text-muted">
++                  recurring
++                </span>
++              )}
++            </div>
+             <p className="text-sm text-muted">
+               {spent.toLocaleString()} / {category.budget.toLocaleString()} MAD
+             </p>
+diff --git a/src/components/CategoryGroupView.tsx b/src/components/CategoryGroupView.tsx
+index 1fbc621..a07e897 100644
+--- a/src/components/CategoryGroupView.tsx
++++ b/src/components/CategoryGroupView.tsx
+@@ -8,8 +8,9 @@ import {
+   addTransaction,
+   deleteCategory,
+   deleteTransaction,
++  seedNotionTemplate,
+ } from "@/lib/firestore";
+-import type { CategoryColor, Group, IconKey } from "@/lib/types";
++import type { Account, CategoryColor, Group, IconKey } from "@/lib/types";
+ import CategoryCard from "./CategoryCard";
+ import Modal from "./Modal";
+ import Icon from "./Icon";
+@@ -48,7 +49,9 @@ export default function CategoryGroupView({
+   const [txName, setTxName] = useState("");
+   const [txAmount, setTxAmount] = useState("");
+   const [txCategoryId, setTxCategoryId] = useState("");
++  const [txAccount, setTxAccount] = useState<Account>("wallet");
+   const [txDate, setTxDate] = useState(() => new Date().toISOString().slice(0, 10));
++  const [importing, setImporting] = useState(false);
+ 
+   async function handleAddCategory(e: FormEvent) {
+     e.preventDefault();
+@@ -73,6 +76,7 @@ export default function CategoryGroupView({
+       amount: Number(txAmount),
+       categoryId: txCategoryId,
+       group,
++      account: txAccount,
+       date: txDate,
+     });
+     setTxName("");
+@@ -80,6 +84,16 @@ export default function CategoryGroupView({
+     setTxModalOpen(false);
+   }
+ 
++  async function handleImportTemplate() {
++    if (!user) return;
++    setImporting(true);
++    try {
++      await seedNotionTemplate(user.uid);
++    } finally {
++      setImporting(false);
++    }
++  }
++
+   return (
+     <main className="mx-auto max-w-5xl px-5 py-8">
+       <div className="flex flex-wrap items-center justify-between gap-3">
+@@ -107,8 +121,16 @@ export default function CategoryGroupView({
+       {categories.length === 0 ? (
+         <div className="mt-6 rounded-xl border border-dashed border-border bg-surface p-8 text-center">
+           <p className="text-sm text-muted">
+-            No categories yet. Add one to start budgeting.
++            No categories yet. Add one manually, or import your original
++            Notion budget template in one click.
+           </p>
++          <button
++            onClick={handleImportTemplate}
++            disabled={importing}
++            className="mt-4 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-dark disabled:opacity-60"
++          >
++            {importing ? "Importing…" : "Import Notion template"}
++          </button>
+         </div>
+       ) : (
+         <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+@@ -139,7 +161,8 @@ export default function CategoryGroupView({
+                   <div>
+                     <p className="text-sm font-medium text-ink">{t.name}</p>
+                     <p className="text-xs text-muted">
+-                      {cat?.name || "Uncategorized"} · {t.date}
++                      {cat?.name || "Uncategorized"} · {t.date} ·{" "}
++                      <span className="capitalize">{t.account}</span>
+                     </p>
+                   </div>
+                 </div>
+@@ -262,6 +285,22 @@ export default function CategoryGroupView({
+               </option>
+             ))}
+           </select>
++          <div className="flex gap-2">
++            {(["wallet", "home"] as Account[]).map((a) => (
++              <button
++                type="button"
++                key={a}
++                onClick={() => setTxAccount(a)}
++                className={`flex-1 rounded-lg border py-2 text-sm font-medium capitalize ${
++                  txAccount === a
++                    ? "border-primary bg-primary-light text-primary-dark"
++                    : "border-border text-muted"
++                }`}
++              >
++                {a}
++              </button>
++            ))}
++          </div>
+           <input
+             type="date"
+             value={txDate}
+diff --git a/src/components/Icon.tsx b/src/components/Icon.tsx
+index 4b34194..f572798 100644
+--- a/src/components/Icon.tsx
++++ b/src/components/Icon.tsx
+@@ -17,6 +17,9 @@ const paths: Record<IconKey, JSX.Element> = {
+   piggy: <path d="M4 12a6 6 0 0 1 6-6h4a6 6 0 0 1 6 4h1v4h-2a6 6 0 0 1-3 3v3H12v-2H9v2H6v-3a6 6 0 0 1-2-5Zm10-5V5" />,
+   plane: <path d="m2 16 20-8-8 20-3-8-8-3Z" />,
+   shield: <path d="M12 2 4 5v6c0 5 3.4 8.7 8 11 4.6-2.3 8-6 8-11V5l-8-3Z" />,
++  wallet: <path d="M3 7a2 2 0 0 1 2-2h13a1 1 0 0 1 1 1v2M3 7v11a2 2 0 0 0 2 2h14a1 1 0 0 0 1-1v-3M3 7l3-3h9M16 14h.01M16 11h5v6h-5a3 3 0 0 1 0-6Z" />,
++  bank: <path d="M3 10 12 4l9 6M4 10v10h16V10M9 14v4M12 14v4M15 14v4M2 20h20" />,
++  alert: <path d="M12 9v4M12 17h.01M10.3 3.9 2.5 18a1.8 1.8 0 0 0 1.5 2.7h16a1.8 1.8 0 0 0 1.5-2.7L13.7 3.9a1.8 1.8 0 0 0-3.4 0Z" />,
+ };
+ 
+ export default function Icon({
+diff --git a/src/lib/firestore.ts b/src/lib/firestore.ts
+index cddec66..30b9ba0 100644
+--- a/src/lib/firestore.ts
++++ b/src/lib/firestore.ts
+@@ -8,15 +8,23 @@ import {
+   query,
+   setDoc,
+   updateDoc,
++  writeBatch,
+ } from "firebase/firestore";
+ import { db } from "./firebase";
+-import type { Category, MonthSettings, SavingsGoal, Transaction } from "./types";
++import type { Category, Income, MonthSettings, SavingsGoal, Transaction } from "./types";
++import {
++  SEED_FIXED_CATEGORIES,
++  SEED_INCOME,
++  SEED_SAVINGS,
++  SEED_VARIABLE_CATEGORIES,
++} from "./notionSeedData";
+ 
+ // All data lives under /users/{uid}/... so each account only ever sees its own data.
+ 
+ const categoriesRef = (uid: string) => collection(db, "users", uid, "categories");
+ const transactionsRef = (uid: string) => collection(db, "users", uid, "transactions");
+ const savingsRef = (uid: string) => collection(db, "users", uid, "savings");
++const incomesRef = (uid: string) => collection(db, "users", uid, "incomes");
+ const monthRef = (uid: string, monthId: string) =>
+   doc(db, "users", uid, "months", monthId);
+ 
+@@ -95,6 +103,86 @@ export function deleteSavingsGoal(uid: string, id: string) {
+   return deleteDoc(doc(db, "users", uid, "savings", id));
+ }
+ 
++// --- Income ---
++
++export function subscribeIncomes(uid: string, cb: (items: Income[]) => void) {
++  const q = query(incomesRef(uid), orderBy("createdAt", "desc"));
++  return onSnapshot(q, (snap) => {
++    cb(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Income)));
++  });
++}
++
++export function addIncome(uid: string, data: Omit<Income, "id" | "createdAt">) {
++  return addDoc(incomesRef(uid), { ...data, createdAt: Date.now() });
++}
++
++export function deleteIncome(uid: string, id: string) {
++  return deleteDoc(doc(db, "users", uid, "incomes", id));
++}
++
++// --- One-click import of the original Notion budget template ---
++// Creates the Fixed/Variable categories, savings goals, and starting income
++// entries exactly as they existed in the source Notion pages, so a new user
++// doesn't have to recreate a spreadsheet's worth of setup by hand.
++
++export async function seedNotionTemplate(uid: string) {
++  const batch = writeBatch(db);
++  const now = Date.now();
++
++  SEED_FIXED_CATEGORIES.forEach((c, i) => {
++    const ref = doc(categoriesRef(uid));
++    batch.set(ref, {
++      name: c.name,
++      group: "fixed",
++      budget: c.budget,
++      icon: c.icon,
++      color: c.color,
++      recurring: true,
++      createdAt: now + i,
++    });
++  });
++
++  SEED_VARIABLE_CATEGORIES.forEach((c, i) => {
++    const ref = doc(categoriesRef(uid));
++    batch.set(ref, {
++      name: c.name,
++      group: "variable",
++      budget: c.budget,
++      icon: c.icon,
++      color: c.color,
++      recurring: false,
++      createdAt: now + 100 + i,
++    });
++  });
++
++  SEED_SAVINGS.forEach((s, i) => {
++    const ref = doc(savingsRef(uid));
++    batch.set(ref, {
++      name: s.name,
++      target: s.target,
++      current: s.current,
++      source: s.source,
++      achieved: s.achieved,
++      createdAt: now + 200 + i,
++    });
++  });
++
++  const today = new Date().toISOString().slice(0, 10);
++  SEED_INCOME.forEach((inc, i) => {
++    const ref = doc(incomesRef(uid));
++    batch.set(ref, {
++      name: inc.name,
++      amount: inc.amount,
++      account: inc.account,
++      date: today,
++      recurring: true,
++      createdAt: now + 300 + i,
++    });
++  });
++
++  await batch.commit();
++}
++
+ // --- Month settings (total budget / home vs wallet split) ---
+ 
+ export function subscribeMonth(
+diff --git a/src/lib/notionSeedData.ts b/src/lib/notionSeedData.ts
+new file mode 100644
+index 0000000..c94e113
+--- /dev/null
++++ b/src/lib/notionSeedData.ts
+@@ -0,0 +1,55 @@
++import type { Account, CategoryColor, Group, IconKey } from "./types";
++
++// Parsed directly from the uploaded Notion export (Summary June - Charge Fix/Variable,
++// June -Saving). Budgets = the "Base" column; savings current/achieved = the "État" column.
++
++export const SEED_FIXED_CATEGORIES: {
++  name: string;
++  budget: number;
++  icon: IconKey;
++  color: CategoryColor;
++}[] = [
++  { name: "Facture (Eau & Électricité)", budget: 120, icon: "bolt", color: "primary" },
++  { name: "Internet", budget: 500, icon: "wifi", color: "violet" },
++  { name: "Téléphone", budget: 250, icon: "phone", color: "warn" },
++  { name: "Location", budget: 3500, icon: "home", color: "danger" },
++  { name: "AI", budget: 50, icon: "sparkles", color: "success" },
++];
++
++export const SEED_VARIABLE_CATEGORIES: {
++  name: string;
++  budget: number;
++  icon: IconKey;
++  color: CategoryColor;
++}[] = [
++  { name: "Alimentation", budget: 3000, icon: "food", color: "success" },
++  { name: "Gazoil", budget: 700, icon: "fuel", color: "warn" },
++  { name: "Restaurant", budget: 500, icon: "restaurant", color: "primary" },
++  { name: "Sortie", budget: 500, icon: "sparkles", color: "violet" },
++  { name: "Beauté", budget: 500, icon: "gift", color: "danger" },
++  { name: "Famille", budget: 600, icon: "family", color: "primary" },
++  { name: "Queen", budget: 800, icon: "gift", color: "violet" },
++  { name: "King", budget: 800, icon: "car", color: "warn" },
++  { name: "Shopping", budget: 1500, icon: "cart", color: "success" },
++];
++
++export const SEED_SAVINGS: {
++  name: string;
++  target: number;
++  current: number;
++  source: string;
++  achieved: boolean;
++}[] = [
++  { name: "Projet X", target: 8000, current: 8000, source: "Bank", achieved: true },
++  { name: "Voyage", target: 1000, current: 1000, source: "Home", achieved: true },
++  { name: "Urgence", target: 1000, current: 1000, source: "Home", achieved: true },
++  { name: "Voiture", target: 400, current: 400, source: "Home", achieved: true },
++  { name: "Aid", target: 500, current: 0, source: "Home", achieved: false },
++  { name: "Cadeau", target: 200, current: 0, source: "Home", achieved: false },
++];
++
++// From the original page note: "8500 = 3100 HOME + 5400 WALLET"
++export const SEED_INCOME: { name: string; amount: number; account: Account }[] = [
++  { name: "Monthly income — Home", amount: 3100, account: "home" },
++  { name: "Monthly income — Wallet", amount: 5400, account: "wallet" },
++];
+diff --git a/src/lib/types.ts b/src/lib/types.ts
+index 2b10bcc..00a0765 100644
+--- a/src/lib/types.ts
++++ b/src/lib/types.ts
+@@ -1,5 +1,7 @@
+ export type Group = "fixed" | "variable";
+ 
++export type Account = "home" | "wallet";
++
+ export interface Category {
+   id: string;
+   name: string;
+@@ -7,6 +9,7 @@ export interface Category {
+   budget: number;
+   color: CategoryColor;
+   icon: IconKey;
++  recurring?: boolean;
+   createdAt: number;
+ }
+ 
+@@ -16,11 +19,22 @@ export interface Transaction {
+   amount: number;
+   categoryId: string;
+   group: Group;
++  account: Account;
+   date: string; // ISO date, e.g. 2026-06-23
+   note?: string;
+   createdAt: number;
+ }
+ 
++export interface Income {
++  id: string;
++  name: string;
++  amount: number;
++  account: Account;
++  date: string;
++  recurring: boolean;
++  createdAt: number;
++}
++
+ export interface SavingsGoal {
+   id: string;
+   name: string;
+@@ -61,4 +75,7 @@ export type IconKey =
+   | "car"
+   | "piggy"
+   | "plane"
+-  | "shield";
++  | "shield"
++  | "wallet"
++  | "bank"
++  | "alert";
+diff --git a/src/lib/useBudgetData.ts b/src/lib/useBudgetData.ts
+index 0400a16..578f5a4 100644
+--- a/src/lib/useBudgetData.ts
++++ b/src/lib/useBudgetData.ts
+@@ -4,26 +4,30 @@ import { useEffect, useMemo, useState } from "react";
+ import { useAuth } from "./auth-context";
+ import {
+   subscribeCategories,
++  subscribeIncomes,
+   subscribeSavings,
+   subscribeTransactions,
+ } from "./firestore";
+-import type { Category, SavingsGoal, Transaction } from "./types";
++import type { Account, Category, Income, SavingsGoal, Transaction } from "./types";
+ 
+ export function useBudgetData() {
+   const { user } = useAuth();
+   const [categories, setCategories] = useState<Category[]>([]);
+   const [transactions, setTransactions] = useState<Transaction[]>([]);
+   const [savings, setSavings] = useState<SavingsGoal[]>([]);
++  const [incomes, setIncomes] = useState<Income[]>([]);
+ 
+   useEffect(() => {
+     if (!user) return;
+     const unsub1 = subscribeCategories(user.uid, setCategories);
+     const unsub2 = subscribeTransactions(user.uid, setTransactions);
+     const unsub3 = subscribeSavings(user.uid, setSavings);
++    const unsub4 = subscribeIncomes(user.uid, setIncomes);
+     return () => {
+       unsub1();
+       unsub2();
+       unsub3();
++      unsub4();
+     };
+   }, [user]);
+ 
+@@ -49,11 +53,40 @@ export function useBudgetData() {
+   const totalSpent = transactions.reduce((s, t) => s + t.amount, 0);
+   const totalSavingsCurrent = savings.reduce((s, g) => s + g.current, 0);
+   const totalSavingsTarget = savings.reduce((s, g) => s + g.target, 0);
++  const totalIncome = incomes.reduce((s, i) => s + i.amount, 0);
++
++  // Home vs Wallet — mirrors the original "3100 HOME / 5400 WALLET" split
++  const byAccount = (account: Account) => {
++    const income = incomes
++      .filter((i) => i.account === account)
++      .reduce((s, i) => s + i.amount, 0);
++    const spent = transactions
++      .filter((t) => t.account === account)
++      .reduce((s, t) => s + t.amount, 0);
++    return { income, spent, balance: income - spent };
++  };
++  const home = byAccount("home");
++  const wallet = byAccount("wallet");
++
++  // Budget alerts: categories at or over 90% of their budget
++  const alerts = useMemo(
++    () =>
++      categories
++        .filter((c) => c.budget > 0)
++        .map((c) => ({
++          category: c,
++          spent: spentByCategory[c.id] || 0,
++          pct: ((spentByCategory[c.id] || 0) / c.budget) * 100,
++        }))
++        .filter((a) => a.pct >= 90),
++    [categories, spentByCategory]
++  );
+ 
+   return {
+     categories,
+     transactions,
+     savings,
++    incomes,
+     spentByCategory,
+     fixedCategories,
+     variableCategories,
+@@ -62,5 +95,9 @@ export function useBudgetData() {
+     totalSpent,
+     totalSavingsCurrent,
+     totalSavingsTarget,
++    totalIncome,
++    home,
++    wallet,
++    alerts,
+   };
+ }

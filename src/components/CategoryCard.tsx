@@ -28,7 +28,14 @@ export default function CategoryCard({
             <Icon name={category.icon} />
           </div>
           <div>
-            <p className="font-semibold text-ink">{category.name}</p>
+            <div className="flex items-center gap-1.5">
+              <p className="font-semibold text-ink">{category.name}</p>
+              {category.recurring && (
+                <span className="rounded-full bg-bg px-1.5 py-0.5 text-[10px] font-medium text-muted">
+                  recurring
+                </span>
+              )}
+            </div>
             <p className="text-sm text-muted">
               {spent.toLocaleString()} / {category.budget.toLocaleString()} MAD
             </p>
