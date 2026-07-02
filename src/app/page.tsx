@@ -1,6 +1,7 @@
 import Link from "next/link";
 import LucideIcon from "@/components/LucideIcon";
 import BrandMark from "@/components/BrandMark";
+import pkg from "../../package.json";
 
 const features = [
   {
@@ -72,10 +73,13 @@ const plans = [
 export default function LandingPage() {
   return (
     <main className="bg-bg text-ink">
-      <header className="mx-auto flex max-w-6xl items-center justify-between px-5 py-6">
+      <header className="mx-auto flex max-w-6xl flex-col gap-4 px-5 py-6 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2">
           <BrandMark size="sm" />
-          <span className="text-lg font-bold">Budgetly</span>
+          <div>
+            <span className="text-lg font-bold">Budgetly</span>
+            <p className="text-xs text-muted">v{pkg.version}</p>
+          </div>
         </div>
         <div className="flex items-center gap-3">
           <Link href="/login" className="text-sm font-medium text-muted hover:text-ink">
