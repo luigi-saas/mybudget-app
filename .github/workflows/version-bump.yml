@@ -11,11 +11,13 @@ permissions:
 jobs:
   bump-version:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v5
@@ -25,8 +27,10 @@ jobs:
       - name: Skip version bump commits
         id: skip-check
         run: |
-          echo "message=${{ github.event.head_commit.message }}" >> $GITHUB_OUTPUT
-          if [[ "${{ github.event.head_commit.message }}" == *"chore: bump version"* ]]; then
+          COMMIT_MESSAGE="${{ github.event.head_commit.message }}"
+          echo "message=$COMMIT_MESSAGE" >> $GITHUB_OUTPUT
+
+          if [[ "$COMMIT_MESSAGE" == *"chore: bump version"* ]]; then
             echo "should_bump=false" >> $GITHUB_OUTPUT
           else
             echo "should_bump=true" >> $GITHUB_OUTPUT
@@ -35,14 +39,22 @@ jobs:
       - name: Bump package version
         if: steps.skip-check.outputs.should_bump == 'true'
         run: |
-          node - <<'NODE'
+          node <<'NODE'
           const fs = require('fs');
+
           const pkgPath = 'package.json';
           const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+
           const [major, minor] = pkg.version.split('.').map(Number);
           const newVersion = `${major}.${minor + 1}.0`;
+
           pkg.version = newVersion;
-          fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n');
+
+          fs.writeFileSync(
+            pkgPath,
+            JSON.stringify(pkg, null, 2) + '\n'
+          );
+
           console.log(`Bumped package version to ${newVersion}`);
           NODE
 
@@ -51,8 +63,13 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git diff --exit-code -- package.json || (
+
+          if ! git diff --quiet package.json; then
+            VERSION=$(node -p "require('./package.json').version")
+
             git add package.json
-            git commit -m "chore: bump version to $(node -p \"require('./package.json').version\")"
-            git push origin main
-          )
+            git commit -m "chore: bump version to $VERSION"
+            git push origin HEAD:main
+          else
+            echo "No changes to commit"
+          fi
