@@ -64,6 +64,12 @@ export default function CategoryGroupView({
   const [txDate, setTxDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [txNote, setTxNote] = useState("");
   const [importing, setImporting] = useState<"notion" | "smart" | null>(null);
+  const [smartTemplateOpen, setSmartTemplateOpen] = useState(false);
+  const [incomeInput, setIncomeInput] = useState("");
+  const [fixedShare, setFixedShare] = useState("50");
+  const [savingsShare, setSavingsShare] = useState("20");
+  const [housingBudget, setHousingBudget] = useState("50");
+  const [goalName, setGoalName] = useState("Emergency fund");
 
   function resetCategoryForm() {
     setName("");
@@ -164,17 +170,34 @@ export default function CategoryGroupView({
     setTxModalOpen(false);
   }
 
+  function resetSmartTemplateForm() {
+    setIncomeInput(String(totalIncome || 8500));
+    setFixedShare("50");
+    setSavingsShare("20");
+    setHousingBudget("50");
+    setGoalName("Emergency fund");
+    setSmartTemplateOpen(false);
+  }
+
   async function handleImportTemplate(template: "notion" | "smart") {
     if (!user) return;
     setImporting(template);
     try {
       if (template === "smart") {
-        await seedSmartBudgetTemplate(user.uid, totalIncome || 8500);
+        await seedSmartBudgetTemplate(user.uid, Number(incomeInput || totalIncome || 8500), {
+          fixedShare: Number(fixedShare || 50),
+          savingsShare: Number(savingsShare || 20),
+          housingBudget: Number(housingBudget || 50),
+          goalName,
+        });
       } else {
         await seedNotionTemplate(user.uid);
       }
     } finally {
       setImporting(null);
+      if (template === "smart") {
+        resetSmartTemplateForm();
+      }
     }
   }
 
@@ -215,7 +238,10 @@ export default function CategoryGroupView({
           </p>
           <div className="mt-4 flex flex-wrap justify-center gap-3">
             <button
-              onClick={() => handleImportTemplate("smart")}
+              onClick={() => {
+                setIncomeInput(String(totalIncome || 8500));
+                setSmartTemplateOpen(true);
+              }}
               disabled={importing === "smart"}
               className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-dark disabled:opacity-60"
             >
@@ -362,6 +388,82 @@ export default function CategoryGroupView({
             className="w-full rounded-lg bg-primary py-2.5 text-sm font-semibold text-white hover:bg-primary-dark"
           >
             {editingCategoryId ? "Save category" : "Add category"}
+          </button>
+        </form>
+      </Modal>
+
+      <Modal open={smartTemplateOpen} onClose={resetSmartTemplateForm} title="Build your smart template">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleImportTemplate("smart");
+          }}
+          className="space-y-3"
+        >
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-muted">Monthly income (MAD)</label>
+            <input
+              type="number"
+              required
+              min="0"
+              value={incomeInput}
+              onChange={(e) => setIncomeInput(e.target.value)}
+              className="w-full rounded-lg border border-border bg-bg px-4 py-2.5 text-sm outline-none focus:border-primary"
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-muted">Fixed costs share (%)</label>
+            <input
+              type="number"
+              required
+              min="20"
+              max="70"
+              value={fixedShare}
+              onChange={(e) => setFixedShare(e.target.value)}
+              className="w-full rounded-lg border border-border bg-bg px-4 py-2.5 text-sm outline-none focus:border-primary"
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-muted">Savings share (%)</label>
+            <input
+              type="number"
+              required
+              min="5"
+              max="40"
+              value={savingsShare}
+              onChange={(e) => setSavingsShare(e.target.value)}
+              className="w-full rounded-lg border border-border bg-bg px-4 py-2.5 text-sm outline-none focus:border-primary"
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-muted">Housing budget share (%)</label>
+            <input
+              type="number"
+              required
+              min="10"
+              max="80"
+              value={housingBudget}
+              onChange={(e) => setHousingBudget(e.target.value)}
+              className="w-full rounded-lg border border-border bg-bg px-4 py-2.5 text-sm outline-none focus:border-primary"
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-muted">Savings goal name</label>
+            <input
+              value={goalName}
+              onChange={(e) => setGoalName(e.target.value)}
+              required
+              className="w-full rounded-lg border border-border bg-bg px-4 py-2.5 text-sm outline-none focus:border-primary"
+            />
+          </div>
+          <p className="text-xs text-muted">
+            This creates a detailed budget with fixed categories, flexible spending buckets, and a tailored savings target.
+          </p>
+          <button
+            type="submit"
+            className="w-full rounded-lg bg-primary py-2.5 text-sm font-semibold text-white hover:bg-primary-dark"
+          >
+            Generate template
           </button>
         </form>
       </Modal>

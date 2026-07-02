@@ -237,28 +237,37 @@ export async function seedNotionTemplate(uid: string) {
   await batch.commit();
 }
 
-export async function seedSmartBudgetTemplate(uid: string, baseIncome: number) {
+export async function seedSmartBudgetTemplate(
+  uid: string,
+  baseIncome: number,
+  preferences: {
+    fixedShare: number;
+    savingsShare: number;
+    housingBudget: number;
+    goalName: string;
+  }
+) {
   const batch = writeBatch(db);
   const now = Date.now();
   const safeIncome = Math.max(0, baseIncome || 8500);
   const today = new Date().toISOString().slice(0, 10);
 
-  const fixedBudget = Math.round(safeIncome * 0.5);
-  const variableBudget = Math.round(safeIncome * 0.3);
-  const savingsTarget = Math.round(safeIncome * 0.2);
+  const fixedBudget = Math.round(safeIncome * (preferences.fixedShare / 100));
+  const variableBudget = Math.round(safeIncome - fixedBudget - Math.round(safeIncome * (preferences.savingsShare / 100)));
+  const savingsTarget = Math.round(safeIncome * (preferences.savingsShare / 100));
 
   const fixedCategories = [
-    { name: "Housing", budget: Math.round(fixedBudget * 0.5), icon: "home", color: "primary" as const },
-    { name: "Utilities", budget: Math.round(fixedBudget * 0.2), icon: "water", color: "success" as const },
-    { name: "Insurance", budget: Math.round(fixedBudget * 0.15), icon: "shield", color: "violet" as const },
-    { name: "Subscriptions", budget: Math.round(fixedBudget * 0.15), icon: "bolt", color: "warn" as const },
+    { name: "Housing", budget: Math.max(1, Math.round(fixedBudget * (preferences.housingBudget / 100))), icon: "home", color: "primary" as const },
+    { name: "Utilities", budget: Math.max(1, Math.round(fixedBudget * 0.2)), icon: "water", color: "success" as const },
+    { name: "Insurance", budget: Math.max(1, Math.round(fixedBudget * 0.15)), icon: "shield", color: "violet" as const },
+    { name: "Subscriptions", budget: Math.max(1, Math.round(fixedBudget * 0.15)), icon: "bolt", color: "warn" as const },
   ];
 
   const variableCategories = [
-    { name: "Groceries", budget: Math.round(variableBudget * 0.35), icon: "food", color: "warn" as const },
-    { name: "Transport", budget: Math.round(variableBudget * 0.2), icon: "car", color: "primary" as const },
-    { name: "Fun", budget: Math.round(variableBudget * 0.2), icon: "sparkles", color: "violet" as const },
-    { name: "Personal", budget: Math.round(variableBudget * 0.25), icon: "gift", color: "success" as const },
+    { name: "Groceries", budget: Math.max(1, Math.round(variableBudget * 0.35)), icon: "food", color: "warn" as const },
+    { name: "Transport", budget: Math.max(1, Math.round(variableBudget * 0.2)), icon: "car", color: "primary" as const },
+    { name: "Fun", budget: Math.max(1, Math.round(variableBudget * 0.2)), icon: "sparkles", color: "violet" as const },
+    { name: "Personal", budget: Math.max(1, Math.round(variableBudget * 0.25)), icon: "gift", color: "success" as const },
   ];
 
   fixedCategories.forEach((c, i) => {
@@ -288,7 +297,7 @@ export async function seedSmartBudgetTemplate(uid: string, baseIncome: number) {
   });
 
   batch.set(doc(savingsRef(uid)), {
-    name: "Emergency fund",
+    name: preferences.goalName || "Emergency fund",
     target: savingsTarget,
     current: 0,
     source: "Bank",
