@@ -66,6 +66,7 @@ export default function CategoryGroupView({
   const [importing, setImporting] = useState<"notion" | "smart" | null>(null);
   const [smartTemplateOpen, setSmartTemplateOpen] = useState(false);
   const [incomeInput, setIncomeInput] = useState("");
+  const [incomeName, setIncomeName] = useState("Salary");
   const [fixedShare, setFixedShare] = useState("50");
   const [savingsShare, setSavingsShare] = useState("20");
   const [housingBudget, setHousingBudget] = useState("50");
@@ -172,6 +173,7 @@ export default function CategoryGroupView({
 
   function resetSmartTemplateForm() {
     setIncomeInput(String(totalIncome || 8500));
+    setIncomeName("Salary");
     setFixedShare("50");
     setSavingsShare("20");
     setHousingBudget("50");
@@ -189,6 +191,7 @@ export default function CategoryGroupView({
           savingsShare: Number(savingsShare || 20),
           housingBudget: Number(housingBudget || 50),
           goalName,
+          incomeName,
         });
       } else {
         await seedNotionTemplate(user.uid);
@@ -401,6 +404,15 @@ export default function CategoryGroupView({
           className="space-y-3"
         >
           <div>
+            <label className="mb-1.5 block text-xs font-medium text-muted">Salary / income source</label>
+            <input
+              value={incomeName}
+              onChange={(e) => setIncomeName(e.target.value)}
+              required
+              className="w-full rounded-lg border border-border bg-bg px-4 py-2.5 text-sm outline-none focus:border-primary"
+            />
+          </div>
+          <div>
             <label className="mb-1.5 block text-xs font-medium text-muted">Monthly income (MAD)</label>
             <input
               type="number"
@@ -457,7 +469,7 @@ export default function CategoryGroupView({
             />
           </div>
           <p className="text-xs text-muted">
-            This creates a detailed budget with fixed categories, flexible spending buckets, and a tailored savings target.
+            This follows a practical 50/30/20-style structure with essentials, flexible spending, and savings built from your salary and share targets.
           </p>
           <button
             type="submit"
