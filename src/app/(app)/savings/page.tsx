@@ -3,48 +3,93 @@
 import { useState, FormEvent } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useBudgetData } from "@/lib/useBudgetData";
-import { addSavingsGoal, deleteSavingsGoal, updateSavingsGoal } from "@/lib/firestore";
+import { useMonth } from "@/lib/month-context";
+import {
+  addSavingsContribution,
+  addSavingsGoal,
+  deleteSavingsContribution,
+  deleteSavingsGoal,
+} from "@/lib/firestore";
+import type { SavingsContribution } from "@/lib/types";
 import SavingsCard from "@/components/SavingsCard";
 import Modal from "@/components/Modal";
+import MonthSwitcher from "@/components/MonthSwitcher";
+import StatCard from "@/components/StatCard";
 
 export default function SavingsPage() {
   const { user } = useAuth();
-  const { savings } = useBudgetData();
-  const [open, setOpen] = useState(false);
+  const { month } = useMonth();
+  const { savings, contributions, totalSavingsCurrent, totalSavingsTarget, totalSavedThisMonth } =
+    useBudgetData();
+
+  const [goalModalOpen, setGoalModalOpen] = useState(false);
   const [name, setName] = useState("");
   const [target, setTarget] = useState("");
-  const [current, setCurrent] = useState("");
   const [source, setSource] = useState("Bank");
 
-  async function handleAdd(e: FormEvent) {
+  const [contribGoalId, setContribGoalId] = useState<string | null>(null);
+  const [contribAmount, setContribAmount] = useState("");
+  const [contribMonth, setContribMonth] = useState(month);
+  const [contribDate, setContribDate] = useState(() => new Date().toISOString().slice(0, 10));
+
+  async function handleAddGoal(e: FormEvent) {
     e.preventDefault();
     if (!user || !name || !target) return;
     await addSavingsGoal(user.uid, {
       name,
       target: Number(target),
-      current: Number(current) || 0,
+      current: 0,
       source,
       achieved: false,
     });
     setName("");
     setTarget("");
-    setCurrent("");
-    setOpen(false);
+    setGoalModalOpen(false);
+  }
+
+  function openContribution(goalId: string) {
+    setContribGoalId(goalId);
+    setContribMonth(month);
+    setContribAmount("");
+  }
+
+  async function handleAddContribution(e: FormEvent) {
+    e.preventDefault();
+    if (!user || !contribGoalId || !contribAmount) return;
+    await addSavingsContribution(user.uid, {
+      goalId: contribGoalId,
+      amount: Number(contribAmount),
+      month: contribMonth,
+      date: contribDate,
+    });
+    setContribGoalId(null);
+    setContribAmount("");
   }
 
   return (
     <main className="mx-auto max-w-5xl px-5 py-8">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-ink">Savings goals</h1>
-          <p className="mt-1 text-sm text-muted">Set targets and watch them fill up.</p>
+          <p className="mt-1 text-sm text-muted">
+            Set a target for each goal, then add what you saved every month and watch the sum grow.
+          </p>
         </div>
-        <button
-          onClick={() => setOpen(true)}
-          className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-dark"
-        >
-          + Goal
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <MonthSwitcher />
+          <button
+            onClick={() => setGoalModalOpen(true)}
+            className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-dark"
+          >
+            + Goal
+          </button>
+        </div>
+      </div>
+
+      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <StatCard label="Saved this month" value={`${totalSavedThisMonth.toLocaleString()} MAD`} icon="piggy" color="success" />
+        <StatCard label="All-time saved" value={`${totalSavingsCurrent.toLocaleString()} MAD`} icon="wallet" color="primary" />
+        <StatCard label="Total target" value={`${totalSavingsTarget.toLocaleString()} MAD`} icon="sparkles" color="violet" />
       </div>
 
       {savings.length === 0 ? (
@@ -53,25 +98,27 @@ export default function SavingsPage() {
         </div>
       ) : (
         <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {savings.map((g) => (
-            <SavingsCard
-              key={g.id}
-              goal={g}
-              onToggleAchieved={() =>
-                user &&
-                updateSavingsGoal(user.uid, g.id, {
-                  achieved: !g.achieved,
-                  current: !g.achieved ? g.target : g.current,
-                })
-              }
-              onDelete={() => user && deleteSavingsGoal(user.uid, g.id)}
-            />
-          ))}
+          {savings.map((g) => {
+            const goalContributions = contributions.filter((c) => c.goalId === g.id);
+            const monthHasContribution = goalContributions.some((c) => c.month === month);
+            return (
+              <SavingsCard
+                key={g.id}
+                goal={g}
+                contributions={goalContributions}
+                monthHasContribution={monthHasContribution}
+                onAdd={() => openContribution(g.id)}
+                onDeleteContribution={(c) => user && deleteSavingsContribution(user.uid, c)}
+                onDelete={() => user && deleteSavingsGoal(user.uid, g.id)}
+              />
+            );
+          })}
         </div>
       )}
 
-      <Modal open={open} onClose={() => setOpen(false)} title="New savings goal">
-        <form onSubmit={handleAdd} className="space-y-3">
+      {/* New goal modal */}
+      <Modal open={goalModalOpen} onClose={() => setGoalModalOpen(false)} title="New savings goal">
+        <form onSubmit={handleAddGoal} className="space-y-3">
           <input
             placeholder="Goal name"
             value={name}
@@ -85,14 +132,6 @@ export default function SavingsPage() {
             value={target}
             onChange={(e) => setTarget(e.target.value)}
             required
-            min="0"
-            className="w-full rounded-lg border border-border bg-bg px-4 py-2.5 text-sm outline-none focus:border-primary"
-          />
-          <input
-            type="number"
-            placeholder="Current amount saved (optional)"
-            value={current}
-            onChange={(e) => setCurrent(e.target.value)}
             min="0"
             className="w-full rounded-lg border border-border bg-bg px-4 py-2.5 text-sm outline-none focus:border-primary"
           />
@@ -110,6 +149,49 @@ export default function SavingsPage() {
             className="w-full rounded-lg bg-primary py-2.5 text-sm font-semibold text-white hover:bg-primary-dark"
           >
             Add goal
+          </button>
+        </form>
+      </Modal>
+
+      {/* Add monthly contribution modal */}
+      <Modal
+        open={contribGoalId !== null}
+        onClose={() => setContribGoalId(null)}
+        title="Add this month's saving"
+      >
+        <form onSubmit={handleAddContribution} className="space-y-3">
+          <input
+            type="number"
+            placeholder="Amount saved (MAD)"
+            value={contribAmount}
+            onChange={(e) => setContribAmount(e.target.value)}
+            required
+            min="0"
+            autoFocus
+            className="w-full rounded-lg border border-border bg-bg px-4 py-2.5 text-sm outline-none focus:border-primary"
+          />
+          <div>
+            <p className="mb-1.5 text-xs font-medium text-muted">For month</p>
+            <input
+              type="month"
+              value={contribMonth}
+              onChange={(e) => setContribMonth(e.target.value)}
+              required
+              className="w-full rounded-lg border border-border bg-bg px-4 py-2.5 text-sm outline-none focus:border-primary"
+            />
+          </div>
+          <input
+            type="date"
+            value={contribDate}
+            onChange={(e) => setContribDate(e.target.value)}
+            required
+            className="w-full rounded-lg border border-border bg-bg px-4 py-2.5 text-sm outline-none focus:border-primary"
+          />
+          <button
+            type="submit"
+            className="w-full rounded-lg bg-primary py-2.5 text-sm font-semibold text-white hover:bg-primary-dark"
+          >
+            Save it
           </button>
         </form>
       </Modal>

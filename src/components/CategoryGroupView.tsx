@@ -3,6 +3,7 @@
 import { useState, FormEvent } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useBudgetData } from "@/lib/useBudgetData";
+import { useMonth } from "@/lib/month-context";
 import {
   addCategory,
   addTransaction,
@@ -14,6 +15,7 @@ import type { Account, CategoryColor, Group, IconKey } from "@/lib/types";
 import CategoryCard from "./CategoryCard";
 import Modal from "./Modal";
 import Icon from "./Icon";
+import MonthSwitcher from "./MonthSwitcher";
 
 const ICON_OPTIONS: IconKey[] = [
   "bolt", "water", "home", "wifi", "phone", "cart",
@@ -31,10 +33,14 @@ export default function CategoryGroupView({
   subtitle: string;
 }) {
   const { user } = useAuth();
-  const { fixedCategories, variableCategories, spentByCategory, transactions } =
+  const { month } = useMonth();
+  const { fixedCategories, variableCategories, spentByCategory, monthTransactions } =
     useBudgetData();
   const categories = group === "fixed" ? fixedCategories : variableCategories;
-  const groupTransactions = transactions.filter((t) => t.group === group);
+  const [search, setSearch] = useState("");
+  const groupTransactions = monthTransactions
+    .filter((t) => t.group === group)
+    .filter((t) => t.name.toLowerCase().includes(search.toLowerCase()));
 
   const [catModalOpen, setCatModalOpen] = useState(false);
   const [txModalOpen, setTxModalOpen] = useState(false);
@@ -51,6 +57,7 @@ export default function CategoryGroupView({
   const [txCategoryId, setTxCategoryId] = useState("");
   const [txAccount, setTxAccount] = useState<Account>("wallet");
   const [txDate, setTxDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [txNote, setTxNote] = useState("");
   const [importing, setImporting] = useState(false);
 
   async function handleAddCategory(e: FormEvent) {
@@ -78,9 +85,11 @@ export default function CategoryGroupView({
       group,
       account: txAccount,
       date: txDate,
+      ...(txNote ? { note: txNote } : {}),
     });
     setTxName("");
     setTxAmount("");
+    setTxNote("");
     setTxModalOpen(false);
   }
 
@@ -101,7 +110,8 @@ export default function CategoryGroupView({
           <h1 className="text-2xl font-bold text-ink">{title}</h1>
           <p className="mt-1 text-sm text-muted">{subtitle}</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <MonthSwitcher />
           <button
             onClick={() => setCatModalOpen(true)}
             className="rounded-lg border border-border bg-surface px-4 py-2 text-sm font-semibold text-ink hover:bg-bg"
@@ -109,7 +119,10 @@ export default function CategoryGroupView({
             + Category
           </button>
           <button
-            onClick={() => setTxModalOpen(true)}
+            onClick={() => {
+              setTxDate(`${month}-01`);
+              setTxModalOpen(true);
+            }}
             disabled={categories.length === 0}
             className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-dark disabled:opacity-50"
           >
@@ -145,9 +158,17 @@ export default function CategoryGroupView({
         </div>
       )}
 
-      <h2 className="mt-10 text-lg font-semibold text-ink">Recent entries</h2>
+      <div className="mt-10 flex items-center justify-between">
+        <h2 className="text-lg font-semibold text-ink">Recent entries</h2>
+        <input
+          placeholder="Search…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-40 rounded-lg border border-border bg-surface px-3 py-1.5 text-sm outline-none focus:border-primary"
+        />
+      </div>
       {groupTransactions.length === 0 ? (
-        <p className="mt-3 text-sm text-muted">No expenses logged yet.</p>
+        <p className="mt-3 text-sm text-muted">No expenses logged this month.</p>
       ) : (
         <div className="mt-3 divide-y divide-border rounded-xl border border-border bg-surface">
           {groupTransactions.map((t) => {
@@ -163,6 +184,7 @@ export default function CategoryGroupView({
                     <p className="text-xs text-muted">
                       {cat?.name || "Uncategorized"} · {t.date} ·{" "}
                       <span className="capitalize">{t.account}</span>
+                      {t.note ? ` · ${t.note}` : ""}
                     </p>
                   </div>
                 </div>
@@ -306,6 +328,12 @@ export default function CategoryGroupView({
             value={txDate}
             onChange={(e) => setTxDate(e.target.value)}
             required
+            className="w-full rounded-lg border border-border bg-bg px-4 py-2.5 text-sm outline-none focus:border-primary"
+          />
+          <input
+            placeholder="Note (optional)"
+            value={txNote}
+            onChange={(e) => setTxNote(e.target.value)}
             className="w-full rounded-lg border border-border bg-bg px-4 py-2.5 text-sm outline-none focus:border-primary"
           />
           <button

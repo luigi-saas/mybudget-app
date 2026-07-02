@@ -8,29 +8,28 @@ import { useState } from "react";
 import StatCard from "@/components/StatCard";
 import CategoryCard from "@/components/CategoryCard";
 import Icon from "@/components/Icon";
+import MonthSwitcher from "@/components/MonthSwitcher";
 
 export default function DashboardPage() {
   const { user } = useAuth();
   const {
-    categories,
     fixedCategories,
     variableCategories,
     spentByCategory,
-    totalFixedBudget,
-    totalVariableBudget,
     totalSpent,
     totalSavingsCurrent,
     totalSavingsTarget,
+    totalSavedThisMonth,
     totalIncome,
     home,
     wallet,
     alerts,
+    remaining,
+    daysLeft,
+    safeToSpendToday,
   } = useBudgetData();
 
   const [importing, setImporting] = useState(false);
-  const totalBudget = totalFixedBudget + totalVariableBudget;
-  const remaining = totalIncome - totalSpent;
-  const netAfterSavings = remaining - (totalSavingsTarget - totalSavingsCurrent);
   const topCategories = [...fixedCategories, ...variableCategories].slice(0, 4);
 
   async function handleImport() {
@@ -45,8 +44,13 @@ export default function DashboardPage() {
 
   return (
     <main className="mx-auto max-w-5xl px-5 py-8">
-      <h1 className="text-2xl font-bold text-ink">Overview</h1>
-      <p className="mt-1 text-sm text-muted">Here&apos;s where your month stands.</p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-ink">Overview</h1>
+          <p className="mt-1 text-sm text-muted">Here&apos;s where this month stands.</p>
+        </div>
+        <MonthSwitcher />
+      </div>
 
       {/* Budget alerts */}
       {alerts.length > 0 && (
@@ -77,13 +81,23 @@ export default function DashboardPage() {
           icon="bolt"
           color={remaining < 0 ? "danger" : "primary"}
         />
-        <StatCard
-          label="Saved"
-          value={`${totalSavingsCurrent.toLocaleString()} / ${totalSavingsTarget.toLocaleString()}`}
-          icon="piggy"
-          color="violet"
-        />
+        <StatCard label="Saved this month" value={`${totalSavedThisMonth.toLocaleString()} MAD`} icon="piggy" color="violet" />
       </div>
+
+      {/* Daily safe-to-spend, only meaningful for the current month */}
+      {daysLeft > 0 && (
+        <div className="mt-4 rounded-xl border border-border bg-surface p-5 shadow-card">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-muted">Safe to spend, per day</p>
+              <p className="mt-1 text-2xl font-bold text-ink">
+                {Math.round(safeToSpendToday).toLocaleString()} MAD / day
+              </p>
+            </div>
+            <p className="text-xs text-muted">{daysLeft} days left this month</p>
+          </div>
+        </div>
+      )}
 
       {/* Home vs Wallet accounts */}
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -119,6 +133,19 @@ export default function DashboardPage() {
             {wallet.balance.toLocaleString()} MAD
           </p>
         </div>
+      </div>
+
+      {/* All-time savings progress + link to full history */}
+      <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-surface p-5 shadow-card">
+        <div>
+          <p className="text-sm text-muted">All-time savings progress</p>
+          <p className="mt-1 text-xl font-bold text-ink">
+            {totalSavingsCurrent.toLocaleString()} / {totalSavingsTarget.toLocaleString()} MAD
+          </p>
+        </div>
+        <Link href="/history" className="flex items-center gap-1.5 text-sm font-medium text-primary">
+          <Icon name="clock" size={16} /> View monthly history
+        </Link>
       </div>
 
       <div className="mt-8 flex items-center justify-between">

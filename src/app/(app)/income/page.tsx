@@ -3,21 +3,24 @@
 import { useState, FormEvent } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useBudgetData } from "@/lib/useBudgetData";
+import { useMonth } from "@/lib/month-context";
 import { addIncome, deleteIncome } from "@/lib/firestore";
 import type { Account } from "@/lib/types";
 import Modal from "@/components/Modal";
 import Icon from "@/components/Icon";
 import StatCard from "@/components/StatCard";
+import MonthSwitcher from "@/components/MonthSwitcher";
 
 export default function IncomePage() {
   const { user } = useAuth();
-  const { incomes, totalIncome, home, wallet } = useBudgetData();
+  const { month } = useMonth();
+  const { monthIncomes, totalIncome, home, wallet } = useBudgetData();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
   const [account, setAccount] = useState<Account>("wallet");
   const [recurring, setRecurring] = useState(true);
-  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(() => `${month}-01`);
 
   async function handleAdd(e: FormEvent) {
     e.preventDefault();
@@ -36,7 +39,7 @@ export default function IncomePage() {
 
   return (
     <main className="mx-auto max-w-5xl px-5 py-8">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-ink">Income</h1>
           <p className="mt-1 text-sm text-muted">
@@ -44,12 +47,18 @@ export default function IncomePage() {
             original budget tracked it.
           </p>
         </div>
-        <button
-          onClick={() => setOpen(true)}
-          className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-dark"
-        >
-          + Income
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <MonthSwitcher />
+          <button
+            onClick={() => {
+              setDate(`${month}-01`);
+              setOpen(true);
+            }}
+            className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-dark"
+          >
+            + Income
+          </button>
+        </div>
       </div>
 
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -58,17 +67,17 @@ export default function IncomePage() {
         <StatCard label="Wallet balance" value={`${wallet.balance.toLocaleString()} MAD`} icon="bank" color={wallet.balance < 0 ? "danger" : "violet"} />
       </div>
 
-      {incomes.length === 0 ? (
+      {monthIncomes.length === 0 ? (
         <div className="mt-6 rounded-xl border border-dashed border-border bg-surface p-8 text-center">
           <p className="text-sm text-muted">
-            No income logged yet. Add your salary or side income, or import
-            the Notion template from the Fixed page to seed the original
-            3,100 Home / 5,400 Wallet split.
+            No income logged for this month yet. Add your salary or side
+            income, or import the Notion template from the Fixed page to
+            seed the original 3,100 Home / 5,400 Wallet split.
           </p>
         </div>
       ) : (
         <div className="mt-6 divide-y divide-border rounded-xl border border-border bg-surface">
-          {incomes.map((i) => (
+          {monthIncomes.map((i) => (
             <div key={i.id} className="flex items-center justify-between px-5 py-3">
               <div className="flex items-center gap-3">
                 <div className="flex h-9 w-9 items-center justify-center rounded-full bg-success-light text-success">

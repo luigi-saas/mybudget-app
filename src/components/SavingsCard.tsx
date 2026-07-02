@@ -2,18 +2,25 @@
 
 import Icon from "./Icon";
 import ProgressBar from "./ProgressBar";
-import type { SavingsGoal } from "@/lib/types";
+import type { SavingsContribution, SavingsGoal } from "@/lib/types";
 
 export default function SavingsCard({
   goal,
-  onToggleAchieved,
+  contributions,
+  monthHasContribution,
+  onAdd,
+  onDeleteContribution,
   onDelete,
 }: {
   goal: SavingsGoal;
-  onToggleAchieved: () => void;
+  contributions: SavingsContribution[];
+  monthHasContribution: boolean;
+  onAdd: () => void;
+  onDeleteContribution: (c: SavingsContribution) => void;
   onDelete: () => void;
 }) {
   const pct = goal.target > 0 ? (goal.current / goal.target) * 100 : 0;
+  const achieved = goal.current >= goal.target && goal.target > 0;
 
   return (
     <div className="rounded-xl bg-surface p-5 shadow-card border border-border">
@@ -21,7 +28,7 @@ export default function SavingsCard({
         <div className="flex items-center gap-3">
           <div
             className={`flex h-11 w-11 items-center justify-center rounded-full ${
-              goal.achieved ? "bg-success-light text-success" : "bg-primary-light text-primary-dark"
+              achieved ? "bg-success-light text-success" : "bg-primary-light text-primary-dark"
             }`}
           >
             <Icon name="piggy" />
@@ -39,23 +46,49 @@ export default function SavingsCard({
           Delete
         </button>
       </div>
+
       <div className="mt-4">
-        <ProgressBar
-          value={pct}
-          barClass={goal.achieved ? "bg-success" : "bg-primary"}
-        />
+        <ProgressBar value={pct} barClass={achieved ? "bg-success" : "bg-primary"} />
         <div className="mt-1.5 flex items-center justify-between text-xs text-muted">
           <span>
             {goal.current.toLocaleString()} / {goal.target.toLocaleString()} MAD
           </span>
-          <button
-            onClick={onToggleAchieved}
-            className={`font-medium ${goal.achieved ? "text-success" : "text-primary"}`}
-          >
-            {goal.achieved ? "Achieved ✓" : "Mark achieved"}
-          </button>
+          <span className={achieved ? "font-medium text-success" : ""}>
+            {achieved ? "Achieved ✓" : `${Math.round(pct)}%`}
+          </span>
         </div>
       </div>
+
+      <button
+        onClick={onAdd}
+        className={`mt-4 w-full rounded-lg py-2 text-sm font-semibold ${
+          monthHasContribution
+            ? "border border-border text-muted hover:bg-bg"
+            : "bg-primary text-white hover:bg-primary-dark"
+        }`}
+      >
+        {monthHasContribution ? "+ Add another this month" : "+ Add this month's saving"}
+      </button>
+
+      {contributions.length > 0 && (
+        <div className="mt-3 space-y-1.5 border-t border-border pt-3">
+          {contributions.slice(0, 4).map((c) => (
+            <div key={c.id} className="flex items-center justify-between text-xs">
+              <span className="text-muted">{c.month}</span>
+              <div className="flex items-center gap-2">
+                <span className="font-medium text-ink">+{c.amount.toLocaleString()} MAD</span>
+                <button
+                  onClick={() => onDeleteContribution(c)}
+                  className="text-muted hover:text-danger"
+                  aria-label="Delete contribution"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

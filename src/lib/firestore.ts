@@ -3,6 +3,7 @@ import {
   collection,
   deleteDoc,
   doc,
+  increment,
   onSnapshot,
   orderBy,
   query,
@@ -11,7 +12,14 @@ import {
   writeBatch,
 } from "firebase/firestore";
 import { db } from "./firebase";
-import type { Category, Income, MonthSettings, SavingsGoal, Transaction } from "./types";
+import type {
+  Category,
+  Income,
+  MonthSettings,
+  SavingsContribution,
+  SavingsGoal,
+  Transaction,
+} from "./types";
 import {
   SEED_FIXED_CATEGORIES,
   SEED_INCOME,
@@ -24,6 +32,8 @@ import {
 const categoriesRef = (uid: string) => collection(db, "users", uid, "categories");
 const transactionsRef = (uid: string) => collection(db, "users", uid, "transactions");
 const savingsRef = (uid: string) => collection(db, "users", uid, "savings");
+const contributionsRef = (uid: string) =>
+  collection(db, "users", uid, "savingsContributions");
 const incomesRef = (uid: string) => collection(db, "users", uid, "incomes");
 const monthRef = (uid: string, monthId: string) =>
   doc(db, "users", uid, "months", monthId);
@@ -101,6 +111,46 @@ export function updateSavingsGoal(
 
 export function deleteSavingsGoal(uid: string, id: string) {
   return deleteDoc(doc(db, "users", uid, "savings", id));
+}
+
+// --- Monthly savings contributions ---
+// Each contribution is a "I put X aside this month for goal Y" entry.
+// goal.current is kept in sync via atomic increment/decrement so the total
+// never has to be recomputed by summing every contribution on read.
+
+export function subscribeContributions(
+  uid: string,
+  cb: (items: SavingsContribution[]) => void
+) {
+  const q = query(contributionsRef(uid), orderBy("createdAt", "desc"));
+  return onSnapshot(q, (snap) => {
+    cb(snap.docs.map((d) => ({ id: d.id, ...d.data() } as SavingsContribution)));
+  });
+}
+
+export async function addSavingsContribution(
+  uid: string,
+  data: Omit<SavingsContribution, "id" | "createdAt">
+) {
+  const batch = writeBatch(db);
+  const ref = doc(contributionsRef(uid));
+  batch.set(ref, { ...data, createdAt: Date.now() });
+  batch.update(doc(db, "users", uid, "savings", data.goalId), {
+    current: increment(data.amount),
+  });
+  await batch.commit();
+}
+
+export async function deleteSavingsContribution(
+  uid: string,
+  contribution: SavingsContribution
+) {
+  const batch = writeBatch(db);
+  batch.delete(doc(db, "users", uid, "savingsContributions", contribution.id));
+  batch.update(doc(db, "users", uid, "savings", contribution.goalId), {
+    current: increment(-contribution.amount),
+  });
+  await batch.commit();
 }
 
 // --- Income ---

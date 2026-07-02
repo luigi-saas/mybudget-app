@@ -45,6 +45,15 @@ export interface SavingsGoal {
   createdAt: number;
 }
 
+export interface SavingsContribution {
+  id: string;
+  goalId: string;
+  amount: number;
+  month: string; // "2026-06"
+  date: string;
+  createdAt: number;
+}
+
 export interface MonthSettings {
   id: string; // "2026-06"
   totalBudget: number;
@@ -78,4 +87,5 @@ export type IconKey =
   | "shield"
   | "wallet"
   | "bank"
-  | "alert";
+  | "alert"
+  | "clock";

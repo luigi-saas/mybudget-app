@@ -20,6 +20,7 @@ const paths: Record<IconKey, JSX.Element> = {
   wallet: <path d="M3 7a2 2 0 0 1 2-2h13a1 1 0 0 1 1 1v2M3 7v11a2 2 0 0 0 2 2h14a1 1 0 0 0 1-1v-3M3 7l3-3h9M16 14h.01M16 11h5v6h-5a3 3 0 0 1 0-6Z" />,
   bank: <path d="M3 10 12 4l9 6M4 10v10h16V10M9 14v4M12 14v4M15 14v4M2 20h20" />,
   alert: <path d="M12 9v4M12 17h.01M10.3 3.9 2.5 18a1.8 1.8 0 0 0 1.5 2.7h16a1.8 1.8 0 0 0 1.5-2.7L13.7 3.9a1.8 1.8 0 0 0-3.4 0Z" />,
+  clock: <path d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Zm0-16v6l4 2" />,
 };
 
 export default function Icon({

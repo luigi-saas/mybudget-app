@@ -12,7 +12,12 @@ const links: { href: string; label: string; icon: IconKey }[] = [
   { href: "/fixed", label: "Fixed", icon: "bolt" },
   { href: "/variable", label: "Variable", icon: "cart" },
   { href: "/savings", label: "Savings", icon: "piggy" },
+  { href: "/history", label: "History", icon: "clock" },
 ];
+
+// Mobile bottom bar keeps to 5 slots (standard tab-bar limit); History is
+// reachable from the desktop sidebar and from a link on the Overview page.
+const mobileLinks = links.filter((l) => l.href !== "/history");
 
 export default function AppNav() {
   const pathname = usePathname();
@@ -60,7 +65,7 @@ export default function AppNav() {
 
       {/* Mobile bottom tab bar */}
       <nav className="fixed bottom-0 left-0 right-0 z-40 flex border-t border-border bg-surface/95 backdrop-blur md:hidden pb-[env(safe-area-inset-bottom)]">
-        {links.map((l) => {
+        {mobileLinks.map((l) => {
           const active = pathname === l.href;
           return (
             <Link

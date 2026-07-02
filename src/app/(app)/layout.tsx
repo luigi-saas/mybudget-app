@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
+import { MonthProvider } from "@/lib/month-context";
 import AppNav from "@/components/AppNav";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -22,9 +23,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex min-h-screen bg-bg">
-      <AppNav />
-      <div className="flex-1 pb-20 md:pb-0">{children}</div>
-    </div>
+    <MonthProvider>
+      <div className="flex min-h-screen bg-bg">
+        <AppNav />
+        <div className="flex-1 pb-20 md:pb-0">{children}</div>
+      </div>
+    </MonthProvider>
   );
 }

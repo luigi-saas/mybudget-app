@@ -1,0 +1,1272 @@
+diff --git a/README.md b/README.md
+index 70f27dd..a837b34 100644
+--- a/README.md
++++ b/README.md
+@@ -37,14 +37,24 @@ Visit `http://localhost:3000`.
+ ## 3. Data model (Firestore)
+ 
+ ```
+-users/{uid}/categories/{id}   { name, group: "fixed" | "variable", budget, color, icon, createdAt }
+-users/{uid}/transactions/{id} { name, amount, categoryId, group, date, createdAt }
+-users/{uid}/savings/{id}      { name, target, current, source, achieved, createdAt }
++users/{uid}/categories/{id}           { name, group: "fixed" | "variable", budget, color, icon, recurring, createdAt }
++users/{uid}/transactions/{id}         { name, amount, categoryId, group, account: "home" | "wallet", date, note?, createdAt }
++users/{uid}/incomes/{id}              { name, amount, account, date, recurring, createdAt }
++users/{uid}/savings/{id}              { name, target, current, source, achieved, createdAt }
++users/{uid}/savingsContributions/{id} { goalId, amount, month, date, createdAt }
+ ```
+ 
+-This mirrors the original Notion structure (Charge Fix / Charge Variable /
+-Saving, grouped by type with a budget "Base" and spent "Total") but as live,
+-queryable records instead of static CSV rows.
++Every screen (Overview, Income, Fixed, Variable, Savings) is scoped to a
++selected month (top-right month switcher, persisted locally) so you see one
++month's numbers at a time — a category's "spent" is only that month's
++transactions, not a running lifetime total. The **History** page groups
++everything by month so you can compare past months side by side.
++
++Savings goals are **not** reset monthly — `current` is a running total kept
++in sync via Firestore's atomic `increment()` every time you log a monthly
++contribution in `savingsContributions`, so the goal's progress bar always
++reflects the sum of everything you've ever put toward it, while History
++shows how much went in during any given month.
+ 
+ ## 4. Install as an app (PWA)
+ 
+diff --git a/src/app/(app)/dashboard/page.tsx b/src/app/(app)/dashboard/page.tsx
+index 01e1ca6..2810de4 100644
+--- a/src/app/(app)/dashboard/page.tsx
++++ b/src/app/(app)/dashboard/page.tsx
+@@ -8,29 +8,28 @@ import { useState } from "react";
+ import StatCard from "@/components/StatCard";
+ import CategoryCard from "@/components/CategoryCard";
+ import Icon from "@/components/Icon";
++import MonthSwitcher from "@/components/MonthSwitcher";
+ 
+ export default function DashboardPage() {
+   const { user } = useAuth();
+   const {
+-    categories,
+     fixedCategories,
+     variableCategories,
+     spentByCategory,
+-    totalFixedBudget,
+-    totalVariableBudget,
+     totalSpent,
+     totalSavingsCurrent,
+     totalSavingsTarget,
++    totalSavedThisMonth,
+     totalIncome,
+     home,
+     wallet,
+     alerts,
++    remaining,
++    daysLeft,
++    safeToSpendToday,
+   } = useBudgetData();
+ 
+   const [importing, setImporting] = useState(false);
+-  const totalBudget = totalFixedBudget + totalVariableBudget;
+-  const remaining = totalIncome - totalSpent;
+-  const netAfterSavings = remaining - (totalSavingsTarget - totalSavingsCurrent);
+   const topCategories = [...fixedCategories, ...variableCategories].slice(0, 4);
+ 
+   async function handleImport() {
+@@ -45,8 +44,13 @@ export default function DashboardPage() {
+ 
+   return (
+     <main className="mx-auto max-w-5xl px-5 py-8">
+-      <h1 className="text-2xl font-bold text-ink">Overview</h1>
+-      <p className="mt-1 text-sm text-muted">Here&apos;s where your month stands.</p>
++      <div className="flex flex-wrap items-center justify-between gap-3">
++        <div>
++          <h1 className="text-2xl font-bold text-ink">Overview</h1>
++          <p className="mt-1 text-sm text-muted">Here&apos;s where this month stands.</p>
++        </div>
++        <MonthSwitcher />
++      </div>
+ 
+       {/* Budget alerts */}
+       {alerts.length > 0 && (
+@@ -77,14 +81,24 @@ export default function DashboardPage() {
+           icon="bolt"
+           color={remaining < 0 ? "danger" : "primary"}
+         />
+-        <StatCard
+-          label="Saved"
+-          value={`${totalSavingsCurrent.toLocaleString()} / ${totalSavingsTarget.toLocaleString()}`}
+-          icon="piggy"
+-          color="violet"
+-        />
++        <StatCard label="Saved this month" value={`${totalSavedThisMonth.toLocaleString()} MAD`} icon="piggy" color="violet" />
+       </div>
+ 
++      {/* Daily safe-to-spend, only meaningful for the current month */}
++      {daysLeft > 0 && (
++        <div className="mt-4 rounded-xl border border-border bg-surface p-5 shadow-card">
++          <div className="flex items-center justify-between">
++            <div>
++              <p className="text-sm text-muted">Safe to spend, per day</p>
++              <p className="mt-1 text-2xl font-bold text-ink">
++                {Math.round(safeToSpendToday).toLocaleString()} MAD / day
++              </p>
++            </div>
++            <p className="text-xs text-muted">{daysLeft} days left this month</p>
++          </div>
++        </div>
++      )}
++
+       {/* Home vs Wallet accounts */}
+       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+         <div className="rounded-xl border border-border bg-surface p-5 shadow-card">
+@@ -121,6 +135,19 @@ export default function DashboardPage() {
+         </div>
+       </div>
+ 
++      {/* All-time savings progress + link to full history */}
++      <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-surface p-5 shadow-card">
++        <div>
++          <p className="text-sm text-muted">All-time savings progress</p>
++          <p className="mt-1 text-xl font-bold text-ink">
++            {totalSavingsCurrent.toLocaleString()} / {totalSavingsTarget.toLocaleString()} MAD
++          </p>
++        </div>
++        <Link href="/history" className="flex items-center gap-1.5 text-sm font-medium text-primary">
++          <Icon name="clock" size={16} /> View monthly history
++        </Link>
++      </div>
++
+       <div className="mt-8 flex items-center justify-between">
+         <h2 className="text-lg font-semibold text-ink">Your categories</h2>
+         <Link href="/fixed" className="text-sm font-medium text-primary">
+diff --git a/src/app/(app)/history/page.tsx b/src/app/(app)/history/page.tsx
+new file mode 100644
+index 0000000..9cfbcf8
+--- /dev/null
++++ b/src/app/(app)/history/page.tsx
+@@ -0,0 +1,123 @@
++"use client";
++
++import { useMemo, useState } from "react";
++import { useBudgetData } from "@/lib/useBudgetData";
++import { monthKeyFromDate, monthLabel } from "@/lib/month";
++import Icon from "@/components/Icon";
++
++export default function HistoryPage() {
++  const { transactions, incomes, contributions, categories } = useBudgetData();
++  const [expanded, setExpanded] = useState<string | null>(null);
++
++  const months = useMemo(() => {
++    const keys = new Set<string>();
++    transactions.forEach((t) => keys.add(monthKeyFromDate(t.date)));
++    incomes.forEach((i) => keys.add(monthKeyFromDate(i.date)));
++    contributions.forEach((c) => keys.add(c.month));
++
++    return Array.from(keys)
++      .sort((a, b) => (a < b ? 1 : -1))
++      .map((key) => {
++        const monthTx = transactions.filter((t) => monthKeyFromDate(t.date) === key);
++        const monthIncome = incomes
++          .filter((i) => monthKeyFromDate(i.date) === key)
++          .reduce((s, i) => s + i.amount, 0);
++        const monthExpenses = monthTx.reduce((s, t) => s + t.amount, 0);
++        const monthSaved = contributions
++          .filter((c) => c.month === key)
++          .reduce((s, c) => s + c.amount, 0);
++
++        const byCategory: Record<string, number> = {};
++        monthTx.forEach((t) => {
++          byCategory[t.categoryId] = (byCategory[t.categoryId] || 0) + t.amount;
++        });
++
++        return {
++          key,
++          income: monthIncome,
++          expenses: monthExpenses,
++          saved: monthSaved,
++          net: monthIncome - monthExpenses - monthSaved,
++          byCategory,
++        };
++      });
++  }, [transactions, incomes, contributions]);
++
++  return (
++    <main className="mx-auto max-w-5xl px-5 py-8">
++      <h1 className="text-2xl font-bold text-ink">Monthly history</h1>
++      <p className="mt-1 text-sm text-muted">
++        Every month you've tracked, side by side — income, expenses, and savings.
++      </p>
++
++      {months.length === 0 ? (
++        <div className="mt-6 rounded-xl border border-dashed border-border bg-surface p-8 text-center">
++          <p className="text-sm text-muted">
++            Nothing tracked yet. Once you log income, expenses, or savings, each month shows up here.
++          </p>
++        </div>
++      ) : (
++        <div className="mt-6 space-y-3">
++          {months.map((m) => {
++            const isOpen = expanded === m.key;
++            const categoryRows = Object.entries(m.byCategory)
++              .map(([categoryId, amount]) => ({
++                category: categories.find((c) => c.id === categoryId),
++                amount,
++              }))
++              .sort((a, b) => b.amount - a.amount);
++
++            return (
++              <div key={m.key} className="rounded-xl border border-border bg-surface shadow-card">
++                <button
++                  onClick={() => setExpanded(isOpen ? null : m.key)}
++                  className="flex w-full flex-wrap items-center justify-between gap-3 px-5 py-4 text-left"
++                >
++                  <span className="font-semibold text-ink">{monthLabel(m.key)}</span>
++                  <div className="flex flex-wrap items-center gap-4 text-sm">
++                    <span className="text-success">+{m.income.toLocaleString()} income</span>
++                    <span className="text-warn">-{m.expenses.toLocaleString()} spent</span>
++                    <span className="text-violet">{m.saved.toLocaleString()} saved</span>
++                    <span className={`font-semibold ${m.net < 0 ? "text-danger" : "text-ink"}`}>
++                      {m.net.toLocaleString()} net
++                    </span>
++                    <Icon
++                      name="clock"
++                      size={16}
++                      className={`text-muted transition-transform ${isOpen ? "rotate-180" : ""}`}
++                    />
++                  </div>
++                </button>
++
++                {isOpen && (
++                  <div className="border-t border-border px-5 py-4">
++                    {categoryRows.length === 0 ? (
++                      <p className="text-sm text-muted">No expenses logged this month.</p>
++                    ) : (
++                      <div className="space-y-2">
++                        {categoryRows.map((row) => (
++                          <div
++                            key={row.category?.id || "uncategorized"}
++                            className="flex items-center justify-between text-sm"
++                          >
++                            <span className="flex items-center gap-2 text-ink">
++                              <Icon name={row.category?.icon || "sparkles"} size={14} className="text-muted" />
++                              {row.category?.name || "Uncategorized"}
++                            </span>
++                            <span className="font-medium text-ink">
++                              {row.amount.toLocaleString()} MAD
++                            </span>
++                          </div>
++                        ))}
++                      </div>
++                    )}
++                  </div>
++                )}
++              </div>
++            );
++          })}
++        </div>
++      )}
++    </main>
++  );
++}
+diff --git a/src/app/(app)/income/page.tsx b/src/app/(app)/income/page.tsx
+index 6c3ea51..b7c4b41 100644
+--- a/src/app/(app)/income/page.tsx
++++ b/src/app/(app)/income/page.tsx
+@@ -3,21 +3,24 @@
+ import { useState, FormEvent } from "react";
+ import { useAuth } from "@/lib/auth-context";
+ import { useBudgetData } from "@/lib/useBudgetData";
++import { useMonth } from "@/lib/month-context";
+ import { addIncome, deleteIncome } from "@/lib/firestore";
+ import type { Account } from "@/lib/types";
+ import Modal from "@/components/Modal";
+ import Icon from "@/components/Icon";
+ import StatCard from "@/components/StatCard";
++import MonthSwitcher from "@/components/MonthSwitcher";
+ 
+ export default function IncomePage() {
+   const { user } = useAuth();
+-  const { incomes, totalIncome, home, wallet } = useBudgetData();
++  const { month } = useMonth();
++  const { monthIncomes, totalIncome, home, wallet } = useBudgetData();
+   const [open, setOpen] = useState(false);
+   const [name, setName] = useState("");
+   const [amount, setAmount] = useState("");
+   const [account, setAccount] = useState<Account>("wallet");
+   const [recurring, setRecurring] = useState(true);
+-  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
++  const [date, setDate] = useState(() => `${month}-01`);
+ 
+   async function handleAdd(e: FormEvent) {
+     e.preventDefault();
+@@ -36,7 +39,7 @@ export default function IncomePage() {
+ 
+   return (
+     <main className="mx-auto max-w-5xl px-5 py-8">
+-      <div className="flex items-center justify-between">
++      <div className="flex flex-wrap items-center justify-between gap-3">
+         <div>
+           <h1 className="text-2xl font-bold text-ink">Income</h1>
+           <p className="mt-1 text-sm text-muted">
+@@ -44,12 +47,18 @@ export default function IncomePage() {
+             original budget tracked it.
+           </p>
+         </div>
+-        <button
+-          onClick={() => setOpen(true)}
+-          className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-dark"
+-        >
+-          + Income
+-        </button>
++        <div className="flex flex-wrap items-center gap-2">
++          <MonthSwitcher />
++          <button
++            onClick={() => {
++              setDate(`${month}-01`);
++              setOpen(true);
++            }}
++            className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-dark"
++          >
++            + Income
++          </button>
++        </div>
+       </div>
+ 
+       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+@@ -58,17 +67,17 @@ export default function IncomePage() {
+         <StatCard label="Wallet balance" value={`${wallet.balance.toLocaleString()} MAD`} icon="bank" color={wallet.balance < 0 ? "danger" : "violet"} />
+       </div>
+ 
+-      {incomes.length === 0 ? (
++      {monthIncomes.length === 0 ? (
+         <div className="mt-6 rounded-xl border border-dashed border-border bg-surface p-8 text-center">
+           <p className="text-sm text-muted">
+-            No income logged yet. Add your salary or side income, or import
+-            the Notion template from the Fixed page to seed the original
+-            3,100 Home / 5,400 Wallet split.
++            No income logged for this month yet. Add your salary or side
++            income, or import the Notion template from the Fixed page to
++            seed the original 3,100 Home / 5,400 Wallet split.
+           </p>
+         </div>
+       ) : (
+         <div className="mt-6 divide-y divide-border rounded-xl border border-border bg-surface">
+-          {incomes.map((i) => (
++          {monthIncomes.map((i) => (
+             <div key={i.id} className="flex items-center justify-between px-5 py-3">
+               <div className="flex items-center gap-3">
+                 <div className="flex h-9 w-9 items-center justify-center rounded-full bg-success-light text-success">
+diff --git a/src/app/(app)/layout.tsx b/src/app/(app)/layout.tsx
+index ba00f28..7a82b1d 100644
+--- a/src/app/(app)/layout.tsx
++++ b/src/app/(app)/layout.tsx
+@@ -3,6 +3,7 @@
+ import { useEffect } from "react";
+ import { useRouter } from "next/navigation";
+ import { useAuth } from "@/lib/auth-context";
++import { MonthProvider } from "@/lib/month-context";
+ import AppNav from "@/components/AppNav";
+ 
+ export default function AppLayout({ children }: { children: React.ReactNode }) {
+@@ -22,9 +23,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
+   }
+ 
+   return (
+-    <div className="flex min-h-screen bg-bg">
+-      <AppNav />
+-      <div className="flex-1 pb-20 md:pb-0">{children}</div>
+-    </div>
++    <MonthProvider>
++      <div className="flex min-h-screen bg-bg">
++        <AppNav />
++        <div className="flex-1 pb-20 md:pb-0">{children}</div>
++      </div>
++    </MonthProvider>
+   );
+ }
+diff --git a/src/app/(app)/savings/page.tsx b/src/app/(app)/savings/page.tsx
+index b8c5fa1..0c35611 100644
+--- a/src/app/(app)/savings/page.tsx
++++ b/src/app/(app)/savings/page.tsx
+@@ -3,48 +3,93 @@
+ import { useState, FormEvent } from "react";
+ import { useAuth } from "@/lib/auth-context";
+ import { useBudgetData } from "@/lib/useBudgetData";
+-import { addSavingsGoal, deleteSavingsGoal, updateSavingsGoal } from "@/lib/firestore";
++import { useMonth } from "@/lib/month-context";
++import {
++  addSavingsContribution,
++  addSavingsGoal,
++  deleteSavingsContribution,
++  deleteSavingsGoal,
++} from "@/lib/firestore";
++import type { SavingsContribution } from "@/lib/types";
+ import SavingsCard from "@/components/SavingsCard";
+ import Modal from "@/components/Modal";
++import MonthSwitcher from "@/components/MonthSwitcher";
++import StatCard from "@/components/StatCard";
+ 
+ export default function SavingsPage() {
+   const { user } = useAuth();
+-  const { savings } = useBudgetData();
+-  const [open, setOpen] = useState(false);
++  const { month } = useMonth();
++  const { savings, contributions, totalSavingsCurrent, totalSavingsTarget, totalSavedThisMonth } =
++    useBudgetData();
++
++  const [goalModalOpen, setGoalModalOpen] = useState(false);
+   const [name, setName] = useState("");
+   const [target, setTarget] = useState("");
+-  const [current, setCurrent] = useState("");
+   const [source, setSource] = useState("Bank");
+ 
+-  async function handleAdd(e: FormEvent) {
++  const [contribGoalId, setContribGoalId] = useState<string | null>(null);
++  const [contribAmount, setContribAmount] = useState("");
++  const [contribMonth, setContribMonth] = useState(month);
++  const [contribDate, setContribDate] = useState(() => new Date().toISOString().slice(0, 10));
++
++  async function handleAddGoal(e: FormEvent) {
+     e.preventDefault();
+     if (!user || !name || !target) return;
+     await addSavingsGoal(user.uid, {
+       name,
+       target: Number(target),
+-      current: Number(current) || 0,
++      current: 0,
+       source,
+       achieved: false,
+     });
+     setName("");
+     setTarget("");
+-    setCurrent("");
+-    setOpen(false);
++    setGoalModalOpen(false);
++  }
++
++  function openContribution(goalId: string) {
++    setContribGoalId(goalId);
++    setContribMonth(month);
++    setContribAmount("");
++  }
++
++  async function handleAddContribution(e: FormEvent) {
++    e.preventDefault();
++    if (!user || !contribGoalId || !contribAmount) return;
++    await addSavingsContribution(user.uid, {
++      goalId: contribGoalId,
++      amount: Number(contribAmount),
++      month: contribMonth,
++      date: contribDate,
++    });
++    setContribGoalId(null);
++    setContribAmount("");
+   }
+ 
+   return (
+     <main className="mx-auto max-w-5xl px-5 py-8">
+-      <div className="flex items-center justify-between">
++      <div className="flex flex-wrap items-center justify-between gap-3">
+         <div>
+           <h1 className="text-2xl font-bold text-ink">Savings goals</h1>
+-          <p className="mt-1 text-sm text-muted">Set targets and watch them fill up.</p>
++          <p className="mt-1 text-sm text-muted">
++            Set a target for each goal, then add what you saved every month and watch the sum grow.
++          </p>
++        </div>
++        <div className="flex flex-wrap items-center gap-2">
++          <MonthSwitcher />
++          <button
++            onClick={() => setGoalModalOpen(true)}
++            className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-dark"
++          >
++            + Goal
++          </button>
+         </div>
+-        <button
+-          onClick={() => setOpen(true)}
+-          className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-dark"
+-        >
+-          + Goal
+-        </button>
++      </div>
++
++      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
++        <StatCard label="Saved this month" value={`${totalSavedThisMonth.toLocaleString()} MAD`} icon="piggy" color="success" />
++        <StatCard label="All-time saved" value={`${totalSavingsCurrent.toLocaleString()} MAD`} icon="wallet" color="primary" />
++        <StatCard label="Total target" value={`${totalSavingsTarget.toLocaleString()} MAD`} icon="sparkles" color="violet" />
+       </div>
+ 
+       {savings.length === 0 ? (
+@@ -53,25 +98,27 @@ export default function SavingsPage() {
+         </div>
+       ) : (
+         <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+-          {savings.map((g) => (
+-            <SavingsCard
+-              key={g.id}
+-              goal={g}
+-              onToggleAchieved={() =>
+-                user &&
+-                updateSavingsGoal(user.uid, g.id, {
+-                  achieved: !g.achieved,
+-                  current: !g.achieved ? g.target : g.current,
+-                })
+-              }
+-              onDelete={() => user && deleteSavingsGoal(user.uid, g.id)}
+-            />
+-          ))}
++          {savings.map((g) => {
++            const goalContributions = contributions.filter((c) => c.goalId === g.id);
++            const monthHasContribution = goalContributions.some((c) => c.month === month);
++            return (
++              <SavingsCard
++                key={g.id}
++                goal={g}
++                contributions={goalContributions}
++                monthHasContribution={monthHasContribution}
++                onAdd={() => openContribution(g.id)}
++                onDeleteContribution={(c) => user && deleteSavingsContribution(user.uid, c)}
++                onDelete={() => user && deleteSavingsGoal(user.uid, g.id)}
++              />
++            );
++          })}
+         </div>
+       )}
+ 
+-      <Modal open={open} onClose={() => setOpen(false)} title="New savings goal">
+-        <form onSubmit={handleAdd} className="space-y-3">
++      {/* New goal modal */}
++      <Modal open={goalModalOpen} onClose={() => setGoalModalOpen(false)} title="New savings goal">
++        <form onSubmit={handleAddGoal} className="space-y-3">
+           <input
+             placeholder="Goal name"
+             value={name}
+@@ -88,14 +135,6 @@ export default function SavingsPage() {
+             min="0"
+             className="w-full rounded-lg border border-border bg-bg px-4 py-2.5 text-sm outline-none focus:border-primary"
+           />
+-          <input
+-            type="number"
+-            placeholder="Current amount saved (optional)"
+-            value={current}
+-            onChange={(e) => setCurrent(e.target.value)}
+-            min="0"
+-            className="w-full rounded-lg border border-border bg-bg px-4 py-2.5 text-sm outline-none focus:border-primary"
+-          />
+           <select
+             value={source}
+             onChange={(e) => setSource(e.target.value)}
+@@ -113,6 +152,49 @@ export default function SavingsPage() {
+           </button>
+         </form>
+       </Modal>
++
++      {/* Add monthly contribution modal */}
++      <Modal
++        open={contribGoalId !== null}
++        onClose={() => setContribGoalId(null)}
++        title="Add this month's saving"
++      >
++        <form onSubmit={handleAddContribution} className="space-y-3">
++          <input
++            type="number"
++            placeholder="Amount saved (MAD)"
++            value={contribAmount}
++            onChange={(e) => setContribAmount(e.target.value)}
++            required
++            min="0"
++            autoFocus
++            className="w-full rounded-lg border border-border bg-bg px-4 py-2.5 text-sm outline-none focus:border-primary"
++          />
++          <div>
++            <p className="mb-1.5 text-xs font-medium text-muted">For month</p>
++            <input
++              type="month"
++              value={contribMonth}
++              onChange={(e) => setContribMonth(e.target.value)}
++              required
++              className="w-full rounded-lg border border-border bg-bg px-4 py-2.5 text-sm outline-none focus:border-primary"
++            />
++          </div>
++          <input
++            type="date"
++            value={contribDate}
++            onChange={(e) => setContribDate(e.target.value)}
++            required
++            className="w-full rounded-lg border border-border bg-bg px-4 py-2.5 text-sm outline-none focus:border-primary"
++          />
++          <button
++            type="submit"
++            className="w-full rounded-lg bg-primary py-2.5 text-sm font-semibold text-white hover:bg-primary-dark"
++          >
++            Save it
++          </button>
++        </form>
++      </Modal>
+     </main>
+   );
+ }
+diff --git a/src/components/AppNav.tsx b/src/components/AppNav.tsx
+index ef4759c..34693fe 100644
+--- a/src/components/AppNav.tsx
++++ b/src/components/AppNav.tsx
+@@ -12,8 +12,13 @@ const links: { href: string; label: string; icon: IconKey }[] = [
+   { href: "/fixed", label: "Fixed", icon: "bolt" },
+   { href: "/variable", label: "Variable", icon: "cart" },
+   { href: "/savings", label: "Savings", icon: "piggy" },
++  { href: "/history", label: "History", icon: "clock" },
+ ];
+ 
++// Mobile bottom bar keeps to 5 slots (standard tab-bar limit); History is
++// reachable from the desktop sidebar and from a link on the Overview page.
++const mobileLinks = links.filter((l) => l.href !== "/history");
++
+ export default function AppNav() {
+   const pathname = usePathname();
+   const { logOut, user } = useAuth();
+@@ -60,7 +65,7 @@ export default function AppNav() {
+ 
+       {/* Mobile bottom tab bar */}
+       <nav className="fixed bottom-0 left-0 right-0 z-40 flex border-t border-border bg-surface/95 backdrop-blur md:hidden pb-[env(safe-area-inset-bottom)]">
+-        {links.map((l) => {
++        {mobileLinks.map((l) => {
+           const active = pathname === l.href;
+           return (
+             <Link
+diff --git a/src/components/CategoryGroupView.tsx b/src/components/CategoryGroupView.tsx
+index a07e897..8e3ecb5 100644
+--- a/src/components/CategoryGroupView.tsx
++++ b/src/components/CategoryGroupView.tsx
+@@ -3,6 +3,7 @@
+ import { useState, FormEvent } from "react";
+ import { useAuth } from "@/lib/auth-context";
+ import { useBudgetData } from "@/lib/useBudgetData";
++import { useMonth } from "@/lib/month-context";
+ import {
+   addCategory,
+   addTransaction,
+@@ -14,6 +15,7 @@ import type { Account, CategoryColor, Group, IconKey } from "@/lib/types";
+ import CategoryCard from "./CategoryCard";
+ import Modal from "./Modal";
+ import Icon from "./Icon";
++import MonthSwitcher from "./MonthSwitcher";
+ 
+ const ICON_OPTIONS: IconKey[] = [
+   "bolt", "water", "home", "wifi", "phone", "cart",
+@@ -31,10 +33,14 @@ export default function CategoryGroupView({
+   subtitle: string;
+ }) {
+   const { user } = useAuth();
+-  const { fixedCategories, variableCategories, spentByCategory, transactions } =
++  const { month } = useMonth();
++  const { fixedCategories, variableCategories, spentByCategory, monthTransactions } =
+     useBudgetData();
+   const categories = group === "fixed" ? fixedCategories : variableCategories;
+-  const groupTransactions = transactions.filter((t) => t.group === group);
++  const [search, setSearch] = useState("");
++  const groupTransactions = monthTransactions
++    .filter((t) => t.group === group)
++    .filter((t) => t.name.toLowerCase().includes(search.toLowerCase()));
+ 
+   const [catModalOpen, setCatModalOpen] = useState(false);
+   const [txModalOpen, setTxModalOpen] = useState(false);
+@@ -51,6 +57,7 @@ export default function CategoryGroupView({
+   const [txCategoryId, setTxCategoryId] = useState("");
+   const [txAccount, setTxAccount] = useState<Account>("wallet");
+   const [txDate, setTxDate] = useState(() => new Date().toISOString().slice(0, 10));
++  const [txNote, setTxNote] = useState("");
+   const [importing, setImporting] = useState(false);
+ 
+   async function handleAddCategory(e: FormEvent) {
+@@ -78,9 +85,11 @@ export default function CategoryGroupView({
+       group,
+       account: txAccount,
+       date: txDate,
++      ...(txNote ? { note: txNote } : {}),
+     });
+     setTxName("");
+     setTxAmount("");
++    setTxNote("");
+     setTxModalOpen(false);
+   }
+ 
+@@ -101,7 +110,8 @@ export default function CategoryGroupView({
+           <h1 className="text-2xl font-bold text-ink">{title}</h1>
+           <p className="mt-1 text-sm text-muted">{subtitle}</p>
+         </div>
+-        <div className="flex gap-2">
++        <div className="flex flex-wrap items-center gap-2">
++          <MonthSwitcher />
+           <button
+             onClick={() => setCatModalOpen(true)}
+             className="rounded-lg border border-border bg-surface px-4 py-2 text-sm font-semibold text-ink hover:bg-bg"
+@@ -109,7 +119,10 @@ export default function CategoryGroupView({
+             + Category
+           </button>
+           <button
+-            onClick={() => setTxModalOpen(true)}
++            onClick={() => {
++              setTxDate(`${month}-01`);
++              setTxModalOpen(true);
++            }}
+             disabled={categories.length === 0}
+             className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-dark disabled:opacity-50"
+           >
+@@ -145,9 +158,17 @@ export default function CategoryGroupView({
+         </div>
+       )}
+ 
+-      <h2 className="mt-10 text-lg font-semibold text-ink">Recent entries</h2>
++      <div className="mt-10 flex items-center justify-between">
++        <h2 className="text-lg font-semibold text-ink">Recent entries</h2>
++        <input
++          placeholder="Search…"
++          value={search}
++          onChange={(e) => setSearch(e.target.value)}
++          className="w-40 rounded-lg border border-border bg-surface px-3 py-1.5 text-sm outline-none focus:border-primary"
++        />
++      </div>
+       {groupTransactions.length === 0 ? (
+-        <p className="mt-3 text-sm text-muted">No expenses logged yet.</p>
++        <p className="mt-3 text-sm text-muted">No expenses logged this month.</p>
+       ) : (
+         <div className="mt-3 divide-y divide-border rounded-xl border border-border bg-surface">
+           {groupTransactions.map((t) => {
+@@ -163,6 +184,7 @@ export default function CategoryGroupView({
+                     <p className="text-xs text-muted">
+                       {cat?.name || "Uncategorized"} · {t.date} ·{" "}
+                       <span className="capitalize">{t.account}</span>
++                      {t.note ? ` · ${t.note}` : ""}
+                     </p>
+                   </div>
+                 </div>
+@@ -308,6 +330,12 @@ export default function CategoryGroupView({
+             required
+             className="w-full rounded-lg border border-border bg-bg px-4 py-2.5 text-sm outline-none focus:border-primary"
+           />
++          <input
++            placeholder="Note (optional)"
++            value={txNote}
++            onChange={(e) => setTxNote(e.target.value)}
++            className="w-full rounded-lg border border-border bg-bg px-4 py-2.5 text-sm outline-none focus:border-primary"
++          />
+           <button
+             type="submit"
+             className="w-full rounded-lg bg-primary py-2.5 text-sm font-semibold text-white hover:bg-primary-dark"
+diff --git a/src/components/Icon.tsx b/src/components/Icon.tsx
+index f572798..cc21e0c 100644
+--- a/src/components/Icon.tsx
++++ b/src/components/Icon.tsx
+@@ -20,6 +20,7 @@ const paths: Record<IconKey, JSX.Element> = {
+   wallet: <path d="M3 7a2 2 0 0 1 2-2h13a1 1 0 0 1 1 1v2M3 7v11a2 2 0 0 0 2 2h14a1 1 0 0 0 1-1v-3M3 7l3-3h9M16 14h.01M16 11h5v6h-5a3 3 0 0 1 0-6Z" />,
+   bank: <path d="M3 10 12 4l9 6M4 10v10h16V10M9 14v4M12 14v4M15 14v4M2 20h20" />,
+   alert: <path d="M12 9v4M12 17h.01M10.3 3.9 2.5 18a1.8 1.8 0 0 0 1.5 2.7h16a1.8 1.8 0 0 0 1.5-2.7L13.7 3.9a1.8 1.8 0 0 0-3.4 0Z" />,
++  clock: <path d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Zm0-16v6l4 2" />,
+ };
+ 
+ export default function Icon({
+diff --git a/src/components/MonthSwitcher.tsx b/src/components/MonthSwitcher.tsx
+new file mode 100644
+index 0000000..9fb5c68
+--- /dev/null
++++ b/src/components/MonthSwitcher.tsx
+@@ -0,0 +1,38 @@
++"use client";
++
++import { useMonth } from "@/lib/month-context";
++import { monthLabel } from "@/lib/month";
++
++export default function MonthSwitcher() {
++  const { month, next, prev, isCurrent, setMonth } = useMonth();
++
++  return (
++    <div className="inline-flex items-center gap-1 rounded-lg border border-border bg-surface p-1">
++      <button
++        onClick={prev}
++        aria-label="Previous month"
++        className="flex h-8 w-8 items-center justify-center rounded-md text-muted hover:bg-bg hover:text-ink"
++      >
++        ‹
++      </button>
++      <span className="min-w-[9rem] text-center text-sm font-semibold text-ink">
++        {monthLabel(month)}
++      </span>
++      <button
++        onClick={next}
++        aria-label="Next month"
++        className="flex h-8 w-8 items-center justify-center rounded-md text-muted hover:bg-bg hover:text-ink"
++      >
++        ›
++      </button>
++      {!isCurrent && (
++        <button
++          onClick={() => setMonth(new Date().toISOString().slice(0, 7))}
++          className="ml-1 rounded-md px-2 py-1 text-xs font-medium text-primary hover:bg-primary-light"
++        >
++          Today
++        </button>
++      )}
++    </div>
++  );
++}
+diff --git a/src/components/SavingsCard.tsx b/src/components/SavingsCard.tsx
+index 1924856..f5fd003 100644
+--- a/src/components/SavingsCard.tsx
++++ b/src/components/SavingsCard.tsx
+@@ -2,18 +2,25 @@
+ 
+ import Icon from "./Icon";
+ import ProgressBar from "./ProgressBar";
+-import type { SavingsGoal } from "@/lib/types";
++import type { SavingsContribution, SavingsGoal } from "@/lib/types";
+ 
+ export default function SavingsCard({
+   goal,
+-  onToggleAchieved,
++  contributions,
++  monthHasContribution,
++  onAdd,
++  onDeleteContribution,
+   onDelete,
+ }: {
+   goal: SavingsGoal;
+-  onToggleAchieved: () => void;
++  contributions: SavingsContribution[];
++  monthHasContribution: boolean;
++  onAdd: () => void;
++  onDeleteContribution: (c: SavingsContribution) => void;
+   onDelete: () => void;
+ }) {
+   const pct = goal.target > 0 ? (goal.current / goal.target) * 100 : 0;
++  const achieved = goal.current >= goal.target && goal.target > 0;
+ 
+   return (
+     <div className="rounded-xl bg-surface p-5 shadow-card border border-border">
+@@ -21,7 +28,7 @@ export default function SavingsCard({
+         <div className="flex items-center gap-3">
+           <div
+             className={`flex h-11 w-11 items-center justify-center rounded-full ${
+-              goal.achieved ? "bg-success-light text-success" : "bg-primary-light text-primary-dark"
++              achieved ? "bg-success-light text-success" : "bg-primary-light text-primary-dark"
+             }`}
+           >
+             <Icon name="piggy" />
+@@ -39,23 +46,49 @@ export default function SavingsCard({
+           Delete
+         </button>
+       </div>
++
+       <div className="mt-4">
+-        <ProgressBar
+-          value={pct}
+-          barClass={goal.achieved ? "bg-success" : "bg-primary"}
+-        />
++        <ProgressBar value={pct} barClass={achieved ? "bg-success" : "bg-primary"} />
+         <div className="mt-1.5 flex items-center justify-between text-xs text-muted">
+           <span>
+             {goal.current.toLocaleString()} / {goal.target.toLocaleString()} MAD
+           </span>
+-          <button
+-            onClick={onToggleAchieved}
+-            className={`font-medium ${goal.achieved ? "text-success" : "text-primary"}`}
+-          >
+-            {goal.achieved ? "Achieved ✓" : "Mark achieved"}
+-          </button>
++          <span className={achieved ? "font-medium text-success" : ""}>
++            {achieved ? "Achieved ✓" : `${Math.round(pct)}%`}
++          </span>
+         </div>
+       </div>
++
++      <button
++        onClick={onAdd}
++        className={`mt-4 w-full rounded-lg py-2 text-sm font-semibold ${
++          monthHasContribution
++            ? "border border-border text-muted hover:bg-bg"
++            : "bg-primary text-white hover:bg-primary-dark"
++        }`}
++      >
++        {monthHasContribution ? "+ Add another this month" : "+ Add this month's saving"}
++      </button>
++
++      {contributions.length > 0 && (
++        <div className="mt-3 space-y-1.5 border-t border-border pt-3">
++          {contributions.slice(0, 4).map((c) => (
++            <div key={c.id} className="flex items-center justify-between text-xs">
++              <span className="text-muted">{c.month}</span>
++              <div className="flex items-center gap-2">
++                <span className="font-medium text-ink">+{c.amount.toLocaleString()} MAD</span>
++                <button
++                  onClick={() => onDeleteContribution(c)}
++                  className="text-muted hover:text-danger"
++                  aria-label="Delete contribution"
++                >
++                  ✕
++                </button>
++              </div>
++            </div>
++          ))}
++        </div>
++      )}
+     </div>
+   );
+ }
+diff --git a/src/lib/firestore.ts b/src/lib/firestore.ts
+index 30b9ba0..1a043ff 100644
+--- a/src/lib/firestore.ts
++++ b/src/lib/firestore.ts
+@@ -3,6 +3,7 @@ import {
+   collection,
+   deleteDoc,
+   doc,
++  increment,
+   onSnapshot,
+   orderBy,
+   query,
+@@ -11,7 +12,14 @@ import {
+   writeBatch,
+ } from "firebase/firestore";
+ import { db } from "./firebase";
+-import type { Category, Income, MonthSettings, SavingsGoal, Transaction } from "./types";
++import type {
++  Category,
++  Income,
++  MonthSettings,
++  SavingsContribution,
++  SavingsGoal,
++  Transaction,
++} from "./types";
+ import {
+   SEED_FIXED_CATEGORIES,
+   SEED_INCOME,
+@@ -24,6 +32,8 @@ import {
+ const categoriesRef = (uid: string) => collection(db, "users", uid, "categories");
+ const transactionsRef = (uid: string) => collection(db, "users", uid, "transactions");
+ const savingsRef = (uid: string) => collection(db, "users", uid, "savings");
++const contributionsRef = (uid: string) =>
++  collection(db, "users", uid, "savingsContributions");
+ const incomesRef = (uid: string) => collection(db, "users", uid, "incomes");
+ const monthRef = (uid: string, monthId: string) =>
+   doc(db, "users", uid, "months", monthId);
+@@ -103,6 +113,46 @@ export function deleteSavingsGoal(uid: string, id: string) {
+   return deleteDoc(doc(db, "users", uid, "savings", id));
+ }
+ 
++// --- Monthly savings contributions ---
++// Each contribution is a "I put X aside this month for goal Y" entry.
++// goal.current is kept in sync via atomic increment/decrement so the total
++// never has to be recomputed by summing every contribution on read.
++
++export function subscribeContributions(
++  uid: string,
++  cb: (items: SavingsContribution[]) => void
++) {
++  const q = query(contributionsRef(uid), orderBy("createdAt", "desc"));
++  return onSnapshot(q, (snap) => {
++    cb(snap.docs.map((d) => ({ id: d.id, ...d.data() } as SavingsContribution)));
++  });
++}
++
++export async function addSavingsContribution(
++  uid: string,
++  data: Omit<SavingsContribution, "id" | "createdAt">
++) {
++  const batch = writeBatch(db);
++  const ref = doc(contributionsRef(uid));
++  batch.set(ref, { ...data, createdAt: Date.now() });
++  batch.update(doc(db, "users", uid, "savings", data.goalId), {
++    current: increment(data.amount),
++  });
++  await batch.commit();
++}
++
++export async function deleteSavingsContribution(
++  uid: string,
++  contribution: SavingsContribution
++) {
++  const batch = writeBatch(db);
++  batch.delete(doc(db, "users", uid, "savingsContributions", contribution.id));
++  batch.update(doc(db, "users", uid, "savings", contribution.goalId), {
++    current: increment(-contribution.amount),
++  });
++  await batch.commit();
++}
++
+ // --- Income ---
+ 
+ export function subscribeIncomes(uid: string, cb: (items: Income[]) => void) {
+diff --git a/src/lib/month-context.tsx b/src/lib/month-context.tsx
+new file mode 100644
+index 0000000..acd20b4
+--- /dev/null
++++ b/src/lib/month-context.tsx
+@@ -0,0 +1,47 @@
++"use client";
++
++import { createContext, useContext, useEffect, useState, ReactNode } from "react";
++import { currentMonthKey, shiftMonth } from "./month";
++
++interface MonthContextValue {
++  month: string; // "2026-06"
++  setMonth: (m: string) => void;
++  next: () => void;
++  prev: () => void;
++  isCurrent: boolean;
++}
++
++const MonthContext = createContext<MonthContextValue | undefined>(undefined);
++
++const STORAGE_KEY = "budgetly:selected-month";
++
++export function MonthProvider({ children }: { children: ReactNode }) {
++  const [month, setMonthState] = useState(currentMonthKey());
++
++  // Hydrate from localStorage after mount to avoid SSR/client mismatch.
++  useEffect(() => {
++    const saved = localStorage.getItem(STORAGE_KEY);
++    if (saved) setMonthState(saved);
++  }, []);
++
++  function setMonth(m: string) {
++    setMonthState(m);
++    localStorage.setItem(STORAGE_KEY, m);
++  }
++
++  const value: MonthContextValue = {
++    month,
++    setMonth,
++    next: () => setMonth(shiftMonth(month, 1)),
++    prev: () => setMonth(shiftMonth(month, -1)),
++    isCurrent: month === currentMonthKey(),
++  };
++
++  return <MonthContext.Provider value={value}>{children}</MonthContext.Provider>;
++}
++
++export function useMonth() {
++  const ctx = useContext(MonthContext);
++  if (!ctx) throw new Error("useMonth must be used within MonthProvider");
++  return ctx;
++}
+diff --git a/src/lib/month.ts b/src/lib/month.ts
+new file mode 100644
+index 0000000..8cf16d0
+--- /dev/null
++++ b/src/lib/month.ts
+@@ -0,0 +1,33 @@
++export function currentMonthKey(): string {
++  return new Date().toISOString().slice(0, 7);
++}
++
++export function monthKeyFromDate(dateStr: string): string {
++  return dateStr.slice(0, 7);
++}
++
++export function monthLabel(key: string): string {
++  const [y, m] = key.split("-").map(Number);
++  return new Date(y, m - 1, 1).toLocaleDateString("en-US", {
++    month: "long",
++    year: "numeric",
++  });
++}
++
++export function shiftMonth(key: string, delta: number): string {
++  const [y, m] = key.split("-").map(Number);
++  const d = new Date(y, m - 1 + delta, 1);
++  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
++}
++
++export function daysInMonth(key: string): number {
++  const [y, m] = key.split("-").map(Number);
++  return new Date(y, m, 0).getDate();
++}
++
++export function daysLeftInMonth(key: string): number {
++  const today = new Date();
++  const isCurrentMonth = key === currentMonthKey();
++  if (!isCurrentMonth) return 0;
++  return Math.max(1, daysInMonth(key) - today.getDate() + 1);
++}
+diff --git a/src/lib/types.ts b/src/lib/types.ts
+index 00a0765..622d94f 100644
+--- a/src/lib/types.ts
++++ b/src/lib/types.ts
+@@ -45,6 +45,15 @@ export interface SavingsGoal {
+   createdAt: number;
+ }
+ 
++export interface SavingsContribution {
++  id: string;
++  goalId: string;
++  amount: number;
++  month: string; // "2026-06"
++  date: string;
++  createdAt: number;
++}
++
+ export interface MonthSettings {
+   id: string; // "2026-06"
+   totalBudget: number;
+@@ -78,4 +87,5 @@ export type IconKey =
+   | "shield"
+   | "wallet"
+   | "bank"
+-  | "alert";
++  | "alert"
++  | "clock";
+diff --git a/src/lib/useBudgetData.ts b/src/lib/useBudgetData.ts
+index 578f5a4..07f5629 100644
+--- a/src/lib/useBudgetData.ts
++++ b/src/lib/useBudgetData.ts
+@@ -2,20 +2,33 @@
+ 
+ import { useEffect, useMemo, useState } from "react";
+ import { useAuth } from "./auth-context";
++import { useMonth } from "./month-context";
++import { daysLeftInMonth, monthKeyFromDate } from "./month";
+ import {
+   subscribeCategories,
++  subscribeContributions,
+   subscribeIncomes,
+   subscribeSavings,
+   subscribeTransactions,
+ } from "./firestore";
+-import type { Account, Category, Income, SavingsGoal, Transaction } from "./types";
++import type {
++  Account,
++  Category,
++  Income,
++  SavingsContribution,
++  SavingsGoal,
++  Transaction,
++} from "./types";
+ 
+ export function useBudgetData() {
+   const { user } = useAuth();
++  const { month } = useMonth();
++
+   const [categories, setCategories] = useState<Category[]>([]);
+   const [transactions, setTransactions] = useState<Transaction[]>([]);
+   const [savings, setSavings] = useState<SavingsGoal[]>([]);
+   const [incomes, setIncomes] = useState<Income[]>([]);
++  const [contributions, setContributions] = useState<SavingsContribution[]>([]);
+ 
+   useEffect(() => {
+     if (!user) return;
+@@ -23,21 +36,37 @@ export function useBudgetData() {
+     const unsub2 = subscribeTransactions(user.uid, setTransactions);
+     const unsub3 = subscribeSavings(user.uid, setSavings);
+     const unsub4 = subscribeIncomes(user.uid, setIncomes);
++    const unsub5 = subscribeContributions(user.uid, setContributions);
+     return () => {
+       unsub1();
+       unsub2();
+       unsub3();
+       unsub4();
++      unsub5();
+     };
+   }, [user]);
+ 
++  // --- Scoped to the currently selected month ---
++  const monthTransactions = useMemo(
++    () => transactions.filter((t) => monthKeyFromDate(t.date) === month),
++    [transactions, month]
++  );
++  const monthIncomes = useMemo(
++    () => incomes.filter((i) => monthKeyFromDate(i.date) === month),
++    [incomes, month]
++  );
++  const monthContributions = useMemo(
++    () => contributions.filter((c) => c.month === month),
++    [contributions, month]
++  );
++
+   const spentByCategory = useMemo(() => {
+     const map: Record<string, number> = {};
+-    for (const t of transactions) {
++    for (const t of monthTransactions) {
+       map[t.categoryId] = (map[t.categoryId] || 0) + t.amount;
+     }
+     return map;
+-  }, [transactions]);
++  }, [monthTransactions]);
+ 
+   const fixedCategories = useMemo(
+     () => categories.filter((c) => c.group === "fixed"),
+@@ -50,17 +79,21 @@ export function useBudgetData() {
+ 
+   const totalFixedBudget = fixedCategories.reduce((s, c) => s + c.budget, 0);
+   const totalVariableBudget = variableCategories.reduce((s, c) => s + c.budget, 0);
+-  const totalSpent = transactions.reduce((s, t) => s + t.amount, 0);
++  const totalSpent = monthTransactions.reduce((s, t) => s + t.amount, 0);
++  const totalIncome = monthIncomes.reduce((s, i) => s + i.amount, 0);
++  const totalSavedThisMonth = monthContributions.reduce((s, c) => s + c.amount, 0);
++
++  // All-time savings progress (goals persist across months)
+   const totalSavingsCurrent = savings.reduce((s, g) => s + g.current, 0);
+   const totalSavingsTarget = savings.reduce((s, g) => s + g.target, 0);
+-  const totalIncome = incomes.reduce((s, i) => s + i.amount, 0);
+ 
+-  // Home vs Wallet — mirrors the original "3100 HOME / 5400 WALLET" split
++  // Home vs Wallet — mirrors the original "3100 HOME / 5400 WALLET" split,
++  // scoped to the selected month.
+   const byAccount = (account: Account) => {
+-    const income = incomes
++    const income = monthIncomes
+       .filter((i) => i.account === account)
+       .reduce((s, i) => s + i.amount, 0);
+-    const spent = transactions
++    const spent = monthTransactions
+       .filter((t) => t.account === account)
+       .reduce((s, t) => s + t.amount, 0);
+     return { income, spent, balance: income - spent };
+@@ -68,7 +101,7 @@ export function useBudgetData() {
+   const home = byAccount("home");
+   const wallet = byAccount("wallet");
+ 
+-  // Budget alerts: categories at or over 90% of their budget
++  // Budget alerts: categories at or over 90% of their budget, this month
+   const alerts = useMemo(
+     () =>
+       categories
+@@ -82,22 +115,38 @@ export function useBudgetData() {
+     [categories, spentByCategory]
+   );
+ 
++  // "Safe to spend today" — remaining budget spread over the days left in
++  // the selected month (0 for past months).
++  const remaining = totalIncome - totalSpent;
++  const daysLeft = daysLeftInMonth(month);
++  const safeToSpendToday = daysLeft > 0 ? Math.max(0, remaining) / daysLeft : 0;
++
+   return {
++    // raw, unfiltered (used by the History page to group across all months)
+     categories,
+     transactions,
+     savings,
+     incomes,
++    contributions,
++    // scoped to the selected month
++    monthTransactions,
++    monthIncomes,
++    monthContributions,
+     spentByCategory,
+     fixedCategories,
+     variableCategories,
+     totalFixedBudget,
+     totalVariableBudget,
+     totalSpent,
++    totalIncome,
++    totalSavedThisMonth,
+     totalSavingsCurrent,
+     totalSavingsTarget,
+-    totalIncome,
+     home,
+     wallet,
+     alerts,
++    remaining,
++    daysLeft,
++    safeToSpendToday,
+   };
+ }

@@ -37,14 +37,24 @@ Visit `http://localhost:3000`.
 ## 3. Data model (Firestore)
 
 ```
-users/{uid}/categories/{id}   { name, group: "fixed" | "variable", budget, color, icon, createdAt }
-users/{uid}/transactions/{id} { name, amount, categoryId, group, date, createdAt }
-users/{uid}/savings/{id}      { name, target, current, source, achieved, createdAt }
+users/{uid}/categories/{id}           { name, group: "fixed" | "variable", budget, color, icon, recurring, createdAt }
+users/{uid}/transactions/{id}         { name, amount, categoryId, group, account: "home" | "wallet", date, note?, createdAt }
+users/{uid}/incomes/{id}              { name, amount, account, date, recurring, createdAt }
+users/{uid}/savings/{id}              { name, target, current, source, achieved, createdAt }
+users/{uid}/savingsContributions/{id} { goalId, amount, month, date, createdAt }
 ```
 
-This mirrors the original Notion structure (Charge Fix / Charge Variable /
-Saving, grouped by type with a budget "Base" and spent "Total") but as live,
-queryable records instead of static CSV rows.
+Every screen (Overview, Income, Fixed, Variable, Savings) is scoped to a
+selected month (top-right month switcher, persisted locally) so you see one
+month's numbers at a time — a category's "spent" is only that month's
+transactions, not a running lifetime total. The **History** page groups
+everything by month so you can compare past months side by side.
+
+Savings goals are **not** reset monthly — `current` is a running total kept
+in sync via Firestore's atomic `increment()` every time you log a monthly
+contribution in `savingsContributions`, so the goal's progress bar always
+reflects the sum of everything you've ever put toward it, while History
+shows how much went in during any given month.
 
 ## 4. Install as an app (PWA)
 
