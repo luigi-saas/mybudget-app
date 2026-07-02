@@ -1,5 +1,5 @@
 import Link from "next/link";
-import Icon from "@/components/Icon";
+import LucideIcon from "@/components/LucideIcon";
 
 const guides = [
   {
@@ -32,7 +32,7 @@ export default function ResourcesPage() {
           <div key={guide.title} className="rounded-xl border border-border bg-surface p-5 shadow-card">
             <div className="flex items-start gap-3">
               <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-full bg-violet-light text-violet">
-                <Icon name="sparkles" size={18} />
+                <LucideIcon name="sparkles" size={18} />
               </div>
               <div>
                 <h2 className="font-semibold text-ink">{guide.title}</h2>

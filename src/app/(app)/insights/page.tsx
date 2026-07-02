@@ -1,5 +1,5 @@
 import Link from "next/link";
-import Icon from "@/components/Icon";
+import LucideIcon from "@/components/LucideIcon";
 
 const tips = [
   {
@@ -34,7 +34,7 @@ export default function InsightsPage() {
         {tips.map((tip) => (
           <div key={tip.title} className="rounded-xl border border-border bg-surface p-5 shadow-card">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-light text-primary-dark">
-              <Icon name={tip.icon} size={18} />
+              <LucideIcon name={tip.icon} size={18} />
             </div>
             <h2 className="mt-3 font-semibold text-ink">{tip.title}</h2>
             <p className="mt-1 text-sm text-muted">{tip.text}</p>

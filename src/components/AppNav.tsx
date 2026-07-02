@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import Icon from "./Icon";
+import LucideIcon from "./LucideIcon";
 import BrandMark from "./BrandMark";
 import type { IconKey } from "@/lib/types";
 import { useAuth } from "@/lib/auth-context";
@@ -51,7 +51,7 @@ export default function AppNav() {
                     : "text-muted hover:bg-bg hover:text-ink"
                 }`}
               >
-                <Icon name={l.icon} size={18} />
+                <LucideIcon name={l.icon} size={18} />
                 {l.label}
               </Link>
             );
@@ -73,14 +73,14 @@ export default function AppNav() {
         {links.map((l) => {
           const active = pathname === l.href;
           return (
-            <Link
+              <Link
               key={l.href}
               href={l.href}
               className={`flex flex-1 flex-col items-center gap-1 py-2.3 text-[11px] font-medium ${
                 active ? "text-primary" : "text-muted"
               }`}
             >
-              <Icon name={l.icon} size={20} />
+              <LucideIcon name={l.icon} size={20} />
               {l.label}
             </Link>
           );

@@ -17,7 +17,7 @@ import {
 import type { Account, Category, CategoryColor, Group, IconKey, Transaction } from "@/lib/types";
 import CategoryCard from "./CategoryCard";
 import Modal from "./Modal";
-import Icon from "./Icon";
+import LucideIcon from "./LucideIcon";
 import MonthSwitcher from "./MonthSwitcher";
 
 const ICON_OPTIONS: IconKey[] = [
@@ -292,7 +292,7 @@ export default function CategoryGroupView({
               <div key={t.id} className="flex items-center justify-between px-4 py-3 sm:px-5">
                 <div className="flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-full bg-bg text-muted">
-                    <Icon name={cat?.icon || "sparkles"} size={16} />
+                    <LucideIcon name={cat?.icon || "sparkles"} size={16} />
                   </div>
                   <div>
                     <p className="text-sm font-medium text-ink">{t.name}</p>
@@ -359,7 +359,7 @@ export default function CategoryGroupView({
                     icon === i ? "border-primary bg-primary-light text-primary-dark" : "border-border text-muted"
                   }`}
                 >
-                  <Icon name={i} size={16} />
+                  <LucideIcon name={i} size={16} />
                 </button>
               ))}
             </div>

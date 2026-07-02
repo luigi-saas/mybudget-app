@@ -7,7 +7,7 @@ import { useMonth } from "@/lib/month-context";
 import { addIncome, deleteIncome } from "@/lib/firestore";
 import type { Account } from "@/lib/types";
 import Modal from "@/components/Modal";
-import Icon from "@/components/Icon";
+import LucideIcon from "@/components/LucideIcon";
 import StatCard from "@/components/StatCard";
 import MonthSwitcher from "@/components/MonthSwitcher";
 
@@ -81,7 +81,7 @@ export default function IncomePage() {
             <div key={i.id} className="flex items-center justify-between px-5 py-3">
               <div className="flex items-center gap-3">
                 <div className="flex h-9 w-9 items-center justify-center rounded-full bg-success-light text-success">
-                  <Icon name="wallet" size={16} />
+                  <LucideIcon name="wallet" size={16} />
                 </div>
                 <div>
                   <p className="text-sm font-medium text-ink">{i.name}</p>

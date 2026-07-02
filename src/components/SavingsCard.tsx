@@ -1,6 +1,6 @@
 "use client";
 
-import Icon from "./Icon";
+import LucideIcon from "./LucideIcon";
 import ProgressBar from "./ProgressBar";
 import type { SavingsContribution, SavingsGoal } from "@/lib/types";
 
@@ -31,7 +31,7 @@ export default function SavingsCard({
               achieved ? "bg-success-light text-success" : "bg-primary-light text-primary-dark"
             }`}
           >
-            <Icon name="piggy" />
+            <LucideIcon name="piggy" />
           </div>
           <div>
             <p className="font-semibold text-ink">{goal.name}</p>

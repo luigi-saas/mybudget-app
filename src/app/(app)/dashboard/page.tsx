@@ -7,9 +7,10 @@ import { seedNotionTemplate } from "@/lib/firestore";
 import { useState } from "react";
 import StatCard from "@/components/StatCard";
 import CategoryCard from "@/components/CategoryCard";
-import Icon from "@/components/Icon";
+import LucideIcon from "@/components/LucideIcon";
 import MonthSwitcher from "@/components/MonthSwitcher";
 import ChartCard from "@/components/ChartCard";
+import Card from "@/components/Card";
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -32,6 +33,11 @@ export default function DashboardPage() {
 
   const [importing, setImporting] = useState(false);
   const topCategories = [...fixedCategories, ...variableCategories].slice(0, 4);
+
+  const totalAvailable = (home?.balance || 0) + (wallet?.balance || 0);
+  const cash = home?.balance || 0;
+  const credit = wallet?.balance || 0;
+  const savings = totalSavingsCurrent || 0;
 
   async function handleImport() {
     if (!user) return;
@@ -61,7 +67,7 @@ export default function DashboardPage() {
               key={a.category.id}
               className="flex items-center gap-3 rounded-xl border border-warn/30 bg-warn-light px-4 py-3"
             >
-              <Icon name="alert" size={18} className="shrink-0 text-warn" />
+              <LucideIcon name="alert" size={18} className="shrink-0 text-warn" />
               <p className="text-sm text-ink">
                 <span className="font-semibold">{a.category.name}</span> is at{" "}
                 {Math.round(a.pct)}% of its {a.category.budget.toLocaleString()} MAD budget
@@ -105,7 +111,7 @@ export default function DashboardPage() {
         <div className="rounded-xl border border-border bg-surface p-5 shadow-card">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-light text-primary-dark">
-              <Icon name="home" size={18} />
+              <LucideIcon name="home" size={18} />
             </div>
             <div>
               <p className="text-sm font-medium text-ink">Home</p>
@@ -121,7 +127,7 @@ export default function DashboardPage() {
         <div className="rounded-xl border border-border bg-surface p-5 shadow-card">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-violet-light text-violet">
-              <Icon name="bank" size={18} />
+              <LucideIcon name="bank" size={18} />
             </div>
             <div>
               <p className="text-sm font-medium text-ink">Wallet</p>
@@ -134,6 +140,27 @@ export default function DashboardPage() {
             {wallet.balance.toLocaleString()} MAD
           </p>
         </div>
+      </div>
+
+      {/* Hero balance + stats */}
+      <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
+        <Card className="md:col-span-2 flex flex-col justify-between p-6">
+          <div>
+            <p className="text-sm text-muted">Available balance</p>
+            <h2 className="mt-2 text-3xl font-bold text-ink">-{totalAvailable.toLocaleString()}</h2>
+            <p className="mt-2 text-sm text-muted">Banking • Updated today</p>
+          </div>
+          <div className="mt-4 grid grid-cols-3 gap-3">
+            <StatCard label="Cash" value={cash.toLocaleString()} icon="bank" />
+            <StatCard label="Credit" value={credit.toLocaleString()} icon="wallet" />
+            <StatCard label="Savings" value={savings.toLocaleString()} icon="piggy" />
+          </div>
+        </Card>
+
+        <Card className="p-4">
+          <MonthSwitcher />
+          <div className="mt-3 text-sm text-muted">Recent activity</div>
+        </Card>
       </div>
 
       {/* Spending breakdown chart */}
@@ -163,7 +190,7 @@ export default function DashboardPage() {
           </p>
         </div>
         <Link href="/history" className="flex items-center gap-1.5 text-sm font-medium text-primary">
-          <Icon name="clock" size={16} /> View monthly history
+          <LucideIcon name="clock" size={16} /> View monthly history
         </Link>
       </div>
 

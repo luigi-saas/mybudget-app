@@ -1,5 +1,5 @@
 import Link from "next/link";
-import Icon from "@/components/Icon";
+import LucideIcon from "@/components/LucideIcon";
 import BrandMark from "@/components/BrandMark";
 
 const features = [
@@ -174,7 +174,7 @@ export default function LandingPage() {
                   "bg-violet-light text-violet"
                 }`}
               >
-                <Icon name={f.icon} size={18} />
+                <LucideIcon name={f.icon} size={18} />
               </div>
               <p className="font-semibold text-ink">{f.title}</p>
               <p className="mt-1 text-sm text-muted">{f.text}</p>

@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useBudgetData } from "@/lib/useBudgetData";
 import { monthKeyFromDate, monthLabel } from "@/lib/month";
-import Icon from "@/components/Icon";
+import LucideIcon from "@/components/LucideIcon";
 
 export default function HistoryPage() {
   const { transactions, incomes, contributions, categories } = useBudgetData();
@@ -81,7 +81,7 @@ export default function HistoryPage() {
                     <span className={`font-semibold ${m.net < 0 ? "text-danger" : "text-ink"}`}>
                       {m.net.toLocaleString()} net
                     </span>
-                    <Icon
+                    <LucideIcon
                       name="clock"
                       size={16}
                       className={`text-muted transition-transform ${isOpen ? "rotate-180" : ""}`}
@@ -101,7 +101,7 @@ export default function HistoryPage() {
                             className="flex items-center justify-between text-sm"
                           >
                             <span className="flex items-center gap-2 text-ink">
-                              <Icon name={row.category?.icon || "sparkles"} size={14} className="text-muted" />
+                              <LucideIcon name={row.category?.icon || "sparkles"} size={14} className="text-muted" />
                               {row.category?.name || "Uncategorized"}
                             </span>
                             <span className="font-medium text-ink">

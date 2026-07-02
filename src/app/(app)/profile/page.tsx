@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { useBudgetData } from "@/lib/useBudgetData";
-import Icon from "@/components/Icon";
+import LucideIcon from "@/components/LucideIcon";
 
 export default function ProfilePage() {
   const { user, logOut } = useAuth();
@@ -54,18 +54,18 @@ export default function ProfilePage() {
       <section className="rounded-[28px] border border-border bg-surface p-5 shadow-card">
         <div className="space-y-3">
           <Link href="/dashboard" className="flex items-center justify-between rounded-2xl bg-bg px-3 py-3 text-sm font-medium text-ink">
-            <span className="flex items-center gap-2"><Icon name="sparkles" size={16} /> Dashboard</span>
+            <span className="flex items-center gap-2"><LucideIcon name="sparkles" size={16} /> Dashboard</span>
             <span className="text-muted">→</span>
           </Link>
           <Link href="/history" className="flex items-center justify-between rounded-2xl bg-bg px-3 py-3 text-sm font-medium text-ink">
-            <span className="flex items-center gap-2"><Icon name="clock" size={16} /> History</span>
+            <span className="flex items-center gap-2"><LucideIcon name="clock" size={16} /> History</span>
             <span className="text-muted">→</span>
           </Link>
           <button
             onClick={() => logOut()}
             className="flex w-full items-center justify-between rounded-2xl bg-bg px-3 py-3 text-left text-sm font-medium text-danger"
           >
-            <span className="flex items-center gap-2"><Icon name="alert" size={16} /> Sign out</span>
+            <span className="flex items-center gap-2"><LucideIcon name="alert" size={16} /> Sign out</span>
             <span>→</span>
           </button>
         </div>

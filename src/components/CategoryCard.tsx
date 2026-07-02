@@ -1,6 +1,6 @@
 "use client";
 
-import Icon from "./Icon";
+import LucideIcon from "./LucideIcon";
 import ProgressBar from "./ProgressBar";
 import { colorTokens } from "@/lib/colors";
 import type { Category } from "@/lib/types";
@@ -24,8 +24,8 @@ export default function CategoryCard({
     <div className="rounded-xl bg-surface p-5 shadow-card border border-border">
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
-          <div className={`flex h-11 w-11 items-center justify-center rounded-full ${tokens.bg} ${tokens.text}`}>
-            <Icon name={category.icon} />
+            <div className={`flex h-11 w-11 items-center justify-center rounded-full ${tokens.bg} ${tokens.text}`}>
+            <LucideIcon name={category.icon} />
           </div>
           <div>
             <div className="flex items-center gap-1.5">
