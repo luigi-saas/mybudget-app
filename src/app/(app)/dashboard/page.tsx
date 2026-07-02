@@ -9,6 +9,7 @@ import StatCard from "@/components/StatCard";
 import CategoryCard from "@/components/CategoryCard";
 import Icon from "@/components/Icon";
 import MonthSwitcher from "@/components/MonthSwitcher";
+import ChartCard from "@/components/ChartCard";
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -132,6 +133,24 @@ export default function DashboardPage() {
           <p className={`mt-3 text-2xl font-bold ${wallet.balance < 0 ? "text-danger" : "text-ink"}`}>
             {wallet.balance.toLocaleString()} MAD
           </p>
+        </div>
+      </div>
+
+      {/* Spending breakdown chart */}
+      <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
+        <ChartCard
+          data={Object.entries(spentByCategory)
+            .map(([id, amount]) => ({ label: (fixedCategories.concat(variableCategories).find((c) => c.id === id)?.name) || id, value: amount }))
+            .sort((a, b) => b.value - a.value)
+            .slice(0, 6)}
+        />
+        <div className="md:col-span-2 rounded-xl border border-border bg-surface p-5 shadow-card">
+          <p className="text-sm text-muted">Quick actions</p>
+          <div className="mt-3 flex gap-3">
+            <button className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white">Add expense</button>
+            <button className="rounded-lg border border-border px-4 py-2 text-sm font-medium">Add category</button>
+            <button className="rounded-lg bg-bg px-4 py-2 text-sm">Import template</button>
+          </div>
         </div>
       </div>
 
