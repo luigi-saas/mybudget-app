@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import LucideIcon from "@/components/LucideIcon";
 import BrandMark from "@/components/BrandMark";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 import pkg from "../../package.json";
 
 const features = [
@@ -114,20 +115,7 @@ export default function LandingPage() {
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2 rounded-full border border-border bg-surface px-4 py-2 text-xs text-muted">
-            <span>{t("header.language")}</span>
-            {otherLocales.map((lang) => (
-              <Link
-                key={lang}
-                href={`/${lang}`}
-                className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
-                  locale === lang ? "bg-primary text-white" : "text-ink hover:text-primary"
-                }`}
-              >
-                {localeLabels[lang]}
-              </Link>
-            ))}
-          </div>
+          <LanguageSwitcher locale={locale} />
           <Link href="/login" className="text-sm font-medium text-muted hover:text-ink">
             {t("header.signIn")}
           </Link>
