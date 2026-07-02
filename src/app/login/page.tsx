@@ -4,7 +4,9 @@ import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
+import { seedSmartBudgetTemplate } from "@/lib/firestore";
 import BrandMark from "@/components/BrandMark";
+import Modal from "@/components/Modal";
 
 export default function LoginPage() {
   const { signInEmail, signUpEmail, signInGoogle } = useAuth();
@@ -14,6 +16,16 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [onboardingStep, setOnboardingStep] = useState(1);
+  const [onboardingError, setOnboardingError] = useState<string | null>(null);
+  const [newUserId, setNewUserId] = useState<string | null>(null);
+  const [income, setIncome] = useState("8500");
+  const [incomeName, setIncomeName] = useState("Salary");
+  const [budgetStyle, setBudgetStyle] = useState<"balanced" | "savings" | "flexible">("balanced");
+  const [housingShare, setHousingShare] = useState<"25" | "30" | "35">("30");
+  const [goalName, setGoalName] = useState("Emergency fund");
 
   function getAuthMessage(err: unknown) {
     const message = err instanceof Error ? err.message : "Something went wrong";
@@ -40,10 +52,13 @@ export default function LoginPage() {
     try {
       if (mode === "signin") {
         await signInEmail(email, password);
+        router.push("/dashboard");
       } else {
-        await signUpEmail(email, password);
+        const result = await signUpEmail(email, password);
+        setNewUserId(result.user.uid);
+        setOnboardingStep(1);
+        setShowOnboarding(true);
       }
-      router.push("/dashboard");
     } catch (err) {
       const authMessage = getAuthMessage(err);
       setError(authMessage);
@@ -66,6 +81,49 @@ export default function LoginPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function completeOnboarding() {
+    if (!newUserId) {
+      setOnboardingError("Something went wrong while setting up your account.");
+      return;
+    }
+
+    setOnboardingError(null);
+    setLoading(true);
+
+    const shares =
+      budgetStyle === "balanced"
+        ? { fixedShare: 50, savingsShare: 20 }
+        : budgetStyle === "savings"
+        ? { fixedShare: 45, savingsShare: 25 }
+        : { fixedShare: 55, savingsShare: 15 };
+
+    try {
+      await seedSmartBudgetTemplate(newUserId, Number(income || 8500), {
+        fixedShare: shares.fixedShare,
+        savingsShare: shares.savingsShare,
+        housingBudget: Number(housingShare),
+        goalName: goalName || "Emergency fund",
+        incomeName: incomeName || "Salary",
+      });
+      setShowOnboarding(false);
+      router.push("/dashboard");
+    } catch (err) {
+      setOnboardingError("Unable to create your budget. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function nextStep() {
+    setOnboardingError(null);
+    setOnboardingStep((current) => Math.min(current + 1, 3));
+  }
+
+  function prevStep() {
+    setOnboardingError(null);
+    setOnboardingStep((current) => Math.max(current - 1, 1));
   }
 
   return (
@@ -148,6 +206,139 @@ export default function LoginPage() {
           </Link>
         </p>
       </div>
+
+      <Modal open={showOnboarding} onClose={() => setShowOnboarding(false)} title="Quick setup">
+        <div className="space-y-4">
+          <div className="flex items-center justify-between rounded-2xl bg-bg px-4 py-3 text-sm text-muted">
+            <span>Step {onboardingStep} of 3</span>
+            <span className="font-semibold text-ink">
+              {onboardingStep === 1 && "Income"}
+              {onboardingStep === 2 && "Budget style"}
+              {onboardingStep === 3 && "Goals & housing"}
+            </span>
+          </div>
+
+          {onboardingStep === 1 && (
+            <div className="space-y-4">
+              <p className="text-sm text-ink">
+                Help us create a smart budget plan by telling us your monthly take-home income and how you label it.
+              </p>
+              <label className="block text-sm font-medium text-ink">Monthly income</label>
+              <input
+                type="number"
+                min={0}
+                value={income}
+                onChange={(e) => setIncome(e.target.value)}
+                className="w-full rounded-2xl border border-border bg-bg px-4 py-3 text-sm text-ink outline-none focus:border-primary"
+              />
+              <label className="block text-sm font-medium text-ink">Income label</label>
+              <input
+                type="text"
+                value={incomeName}
+                onChange={(e) => setIncomeName(e.target.value)}
+                className="w-full rounded-2xl border border-border bg-bg px-4 py-3 text-sm text-ink outline-none focus:border-primary"
+              />
+            </div>
+          )}
+
+          {onboardingStep === 2 && (
+            <div className="space-y-4">
+              <p className="text-sm text-ink">
+                Pick the budgeting style that matches your financial goals. We’ll preset category shares for you.
+              </p>
+              <div className="grid gap-3 sm:grid-cols-3">
+                {[
+                  { value: "balanced", title: "Balanced", description: "Stable spending with steady savings." },
+                  { value: "savings", title: "Savings first", description: "Prioritize goals and build cash reserves." },
+                  { value: "flexible", title: "Flexible", description: "More freedom with a relaxed planning rhythm." },
+                ].map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => setBudgetStyle(option.value as typeof budgetStyle)}
+                    className={`rounded-3xl border p-4 text-left transition ${
+                      budgetStyle === option.value
+                        ? "border-primary bg-primary/5"
+                        : "border-border bg-surface hover:border-primary"
+                    }`}
+                  >
+                    <p className="text-sm font-semibold text-ink">{option.title}</p>
+                    <p className="mt-2 text-xs text-muted">{option.description}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {onboardingStep === 3 && (
+            <div className="space-y-4">
+              <p className="text-sm text-ink">
+                Finalize your starter plan with a savings goal and housing budget share.
+              </p>
+              <label className="block text-sm font-medium text-ink">Primary goal</label>
+              <input
+                type="text"
+                value={goalName}
+                onChange={(e) => setGoalName(e.target.value)}
+                className="w-full rounded-2xl border border-border bg-bg px-4 py-3 text-sm text-ink outline-none focus:border-primary"
+              />
+              <label className="block text-sm font-medium text-ink">Housing budget</label>
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  { value: "25", label: "25%" },
+                  { value: "30", label: "30%" },
+                  { value: "35", label: "35%" },
+                ].map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => setHousingShare(option.value as typeof housingShare)}
+                    className={`rounded-3xl border px-3 py-3 text-sm transition ${
+                      housingShare === option.value
+                        ? "border-primary bg-primary/5 text-primary"
+                        : "border-border bg-surface text-ink hover:border-primary"
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {onboardingError && <p className="text-sm text-danger">{onboardingError}</p>}
+
+          <div className="flex items-center justify-between gap-3">
+            <button
+              type="button"
+              onClick={prevStep}
+              disabled={onboardingStep === 1 || loading}
+              className="inline-flex items-center justify-center rounded-full border border-border bg-surface px-4 py-2 text-sm font-semibold text-ink disabled:opacity-50"
+            >
+              Back
+            </button>
+            {onboardingStep < 3 ? (
+              <button
+                type="button"
+                onClick={nextStep}
+                disabled={loading}
+                className="inline-flex items-center justify-center rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-dark disabled:opacity-60"
+              >
+                Next
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={completeOnboarding}
+                disabled={loading}
+                className="inline-flex items-center justify-center rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-dark disabled:opacity-60"
+              >
+                {loading ? "Creating budget…" : "Create my plan"}
+              </button>
+            )}
+          </div>
+        </div>
+      </Modal>
     </main>
   );
 }

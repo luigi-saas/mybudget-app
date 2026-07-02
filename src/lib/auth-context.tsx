@@ -10,6 +10,7 @@ import {
 import {
   GoogleAuthProvider,
   User,
+  UserCredential,
   createUserWithEmailAndPassword,
   onAuthStateChanged,
   signInWithEmailAndPassword,
@@ -22,7 +23,7 @@ interface AuthContextValue {
   user: User | null;
   loading: boolean;
   signInEmail: (email: string, password: string) => Promise<void>;
-  signUpEmail: (email: string, password: string) => Promise<void>;
+  signUpEmail: (email: string, password: string) => Promise<UserCredential>;
   signInGoogle: () => Promise<void>;
   logOut: () => Promise<void>;
 }
@@ -48,7 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await signInWithEmailAndPassword(auth, email, password);
     },
     signUpEmail: async (email, password) => {
-      await createUserWithEmailAndPassword(auth, email, password);
+      return await createUserWithEmailAndPassword(auth, email, password);
     },
     signInGoogle: async () => {
       await signInWithPopup(auth, new GoogleAuthProvider());
