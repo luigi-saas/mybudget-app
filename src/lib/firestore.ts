@@ -81,6 +81,10 @@ export function addTransaction(
   return addDoc(transactionsRef(uid), { ...data, createdAt: Date.now() });
 }
 
+export function updateTransaction(uid: string, id: string, data: Partial<Transaction>) {
+  return updateDoc(doc(db, "users", uid, "transactions", id), data);
+}
+
 export function deleteTransaction(uid: string, id: string) {
   return deleteDoc(doc(db, "users", uid, "transactions", id));
 }
@@ -228,6 +232,77 @@ export async function seedNotionTemplate(uid: string) {
       recurring: true,
       createdAt: now + 300 + i,
     });
+  });
+
+  await batch.commit();
+}
+
+export async function seedSmartBudgetTemplate(uid: string, baseIncome: number) {
+  const batch = writeBatch(db);
+  const now = Date.now();
+  const safeIncome = Math.max(0, baseIncome || 8500);
+  const today = new Date().toISOString().slice(0, 10);
+
+  const fixedBudget = Math.round(safeIncome * 0.5);
+  const variableBudget = Math.round(safeIncome * 0.3);
+  const savingsTarget = Math.round(safeIncome * 0.2);
+
+  const fixedCategories = [
+    { name: "Housing", budget: Math.round(fixedBudget * 0.5), icon: "home", color: "primary" as const },
+    { name: "Utilities", budget: Math.round(fixedBudget * 0.2), icon: "water", color: "success" as const },
+    { name: "Insurance", budget: Math.round(fixedBudget * 0.15), icon: "shield", color: "violet" as const },
+    { name: "Subscriptions", budget: Math.round(fixedBudget * 0.15), icon: "bolt", color: "warn" as const },
+  ];
+
+  const variableCategories = [
+    { name: "Groceries", budget: Math.round(variableBudget * 0.35), icon: "food", color: "warn" as const },
+    { name: "Transport", budget: Math.round(variableBudget * 0.2), icon: "car", color: "primary" as const },
+    { name: "Fun", budget: Math.round(variableBudget * 0.2), icon: "sparkles", color: "violet" as const },
+    { name: "Personal", budget: Math.round(variableBudget * 0.25), icon: "gift", color: "success" as const },
+  ];
+
+  fixedCategories.forEach((c, i) => {
+    const ref = doc(categoriesRef(uid));
+    batch.set(ref, {
+      name: c.name,
+      group: "fixed",
+      budget: c.budget,
+      icon: c.icon,
+      color: c.color,
+      recurring: true,
+      createdAt: now + i,
+    });
+  });
+
+  variableCategories.forEach((c, i) => {
+    const ref = doc(categoriesRef(uid));
+    batch.set(ref, {
+      name: c.name,
+      group: "variable",
+      budget: c.budget,
+      icon: c.icon,
+      color: c.color,
+      recurring: false,
+      createdAt: now + 100 + i,
+    });
+  });
+
+  batch.set(doc(savingsRef(uid)), {
+    name: "Emergency fund",
+    target: savingsTarget,
+    current: 0,
+    source: "Bank",
+    achieved: false,
+    createdAt: now + 200,
+  });
+
+  batch.set(doc(incomesRef(uid)), {
+    name: "Primary income",
+    amount: safeIncome,
+    account: "home",
+    date: today,
+    recurring: true,
+    createdAt: now + 300,
   });
 
   await batch.commit();

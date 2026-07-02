@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Icon from "@/components/Icon";
+import BrandMark from "@/components/BrandMark";
 
 const features = [
   {
@@ -74,9 +75,7 @@ export default function LandingPage() {
       {/* Nav */}
       <header className="mx-auto flex max-w-6xl items-center justify-between px-5 py-6">
         <div className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-white">
-            <Icon name="piggy" size={18} />
-          </div>
+          <BrandMark size="sm" />
           <span className="text-lg font-bold text-ink">Budgetly</span>
         </div>
         <div className="flex items-center gap-3">
@@ -99,12 +98,10 @@ export default function LandingPage() {
             Replaces your budget spreadsheet
           </span>
           <h1 className="mt-4 text-4xl font-extrabold leading-tight text-ink md:text-5xl">
-            Fixed. Variable. Saved. <br /> One number for each.
+            A sharper way to manage <br /> every dollar you earn.
           </h1>
           <p className="mt-4 text-base text-muted md:text-lg">
-            Budgetly turns your monthly charges, day-to-day spending, and savings
-            goals into a single dashboard you can check in ten seconds — on your
-            phone, installed like a real app.
+            Budgetly combines fixed bills, daily spending, income, and savings in one calm dashboard — so you can make smart money moves without opening a spreadsheet.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <Link
@@ -162,7 +159,10 @@ export default function LandingPage() {
 
       {/* Features */}
       <section className="mx-auto max-w-6xl px-5 py-10 md:py-16">
-        <h2 className="text-2xl font-bold text-ink">Everything your spreadsheet was doing manually</h2>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <h2 className="text-2xl font-bold text-ink">Everything your spreadsheet was doing manually</h2>
+          <p className="text-sm text-muted">Now faster, calmer, and built for your phone.</p>
+        </div>
         <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {features.map((f) => (
             <div key={f.title} className="rounded-xl border border-border bg-surface p-5 shadow-card">
@@ -180,6 +180,27 @@ export default function LandingPage() {
               <p className="mt-1 text-sm text-muted">{f.text}</p>
             </div>
           ))}
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-6xl px-5 py-10 md:py-16">
+        <div className="rounded-2xl border border-border bg-surface p-6 shadow-card">
+          <div className="grid gap-6 md:grid-cols-[1.2fr_0.8fr] md:items-center">
+            <div>
+              <p className="text-sm font-semibold text-primary">Built for real life</p>
+              <h3 className="mt-2 text-2xl font-bold text-ink">More clarity, less mental load.</h3>
+              <p className="mt-2 text-sm text-muted">
+                See what is safe to spend today, track progress toward goals, and stay ahead of overspending without juggling multiple apps.
+              </p>
+            </div>
+            <div className="rounded-xl border border-border bg-bg p-4">
+              <ul className="space-y-3 text-sm text-ink">
+                <li className="flex items-center gap-2"><span className="text-success">✓</span> One-stop view for income, bills, and savings</li>
+                <li className="flex items-center gap-2"><span className="text-success">✓</span> Simple alerts before a category gets out of hand</li>
+                <li className="flex items-center gap-2"><span className="text-success">✓</span> Mobile-first experience that feels like a real app</li>
+              </ul>
+            </div>
+          </div>
         </div>
       </section>
 

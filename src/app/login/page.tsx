@@ -4,7 +4,7 @@ import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
-import Icon from "@/components/Icon";
+import BrandMark from "@/components/BrandMark";
 
 export default function LoginPage() {
   const { signInEmail, signUpEmail, signInGoogle } = useAuth();
@@ -14,6 +14,24 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  function getAuthMessage(err: unknown) {
+    const message = err instanceof Error ? err.message : "Something went wrong";
+
+    if (message.includes("auth/invalid-credential") || message.includes("auth/user-not-found") || message.includes("auth/wrong-password")) {
+      return "These sign-in details don’t match an existing account. Try signing up or double-check your email and password.";
+    }
+
+    if (message.includes("auth/email-already-in-use")) {
+      return "This email is already registered. Switch to Sign in and try again.";
+    }
+
+    if (message.includes("auth/operation-not-allowed")) {
+      return "Email/password sign-in is not enabled in Firebase. Turn it on in the Firebase console for this project.";
+    }
+
+    return message;
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -27,7 +45,11 @@ export default function LoginPage() {
       }
       router.push("/dashboard");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
+      const authMessage = getAuthMessage(err);
+      setError(authMessage);
+      if (mode === "signin" && authMessage.includes("signing up")) {
+        setMode("signup");
+      }
     } finally {
       setLoading(false);
     }
@@ -40,7 +62,7 @@ export default function LoginPage() {
       await signInGoogle();
       router.push("/dashboard");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
+      setError(getAuthMessage(err));
     } finally {
       setLoading(false);
     }
@@ -50,10 +72,11 @@ export default function LoginPage() {
     <main className="flex min-h-screen items-center justify-center bg-bg px-4">
       <div className="w-full max-w-sm rounded-2xl bg-surface p-8 shadow-card border border-border">
         <div className="mb-6 flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-white">
-            <Icon name="piggy" size={18} />
+          <BrandMark size="sm" />
+          <div>
+            <p className="text-lg font-semibold text-ink">Budgetly</p>
+            <p className="text-xs text-muted">Money planning that feels calm</p>
           </div>
-          <span className="text-lg font-bold text-ink">Budgetly</span>
         </div>
 
         <h1 className="text-xl font-bold text-ink">
@@ -61,8 +84,8 @@ export default function LoginPage() {
         </h1>
         <p className="mt-1 text-sm text-muted">
           {mode === "signin"
-            ? "Sign in to see your budget."
-            : "Start tracking your budget in minutes."}
+            ? "Pick up where you left off and keep your plan moving."
+            : "Start tracking your budget in minutes with a calmer, clearer workflow."}
         </p>
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-3">
@@ -110,7 +133,10 @@ export default function LoginPage() {
         <p className="mt-6 text-center text-sm text-muted">
           {mode === "signin" ? "No account yet?" : "Already have an account?"}{" "}
           <button
-            onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
+            onClick={() => {
+              setError(null);
+              setMode(mode === "signin" ? "signup" : "signin");
+            }}
             className="font-semibold text-primary"
           >
             {mode === "signin" ? "Sign up" : "Sign in"}

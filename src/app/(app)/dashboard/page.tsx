@@ -148,6 +148,23 @@ export default function DashboardPage() {
         </Link>
       </div>
 
+      <div className="mt-8 rounded-xl border border-border bg-surface p-5 shadow-card">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold text-ink">Next best step</p>
+            <p className="mt-1 text-sm text-muted">Use your insights to make the next month feel easier.</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Link href="/insights" className="rounded-lg border border-border px-3 py-2 text-sm font-medium text-ink hover:bg-bg">
+              View insights
+            </Link>
+            <Link href="/resources" className="rounded-lg bg-primary px-3 py-2 text-sm font-medium text-white hover:bg-primary-dark">
+              Read guides
+            </Link>
+          </div>
+        </div>
+      </div>
+
       <div className="mt-8 flex items-center justify-between">
         <h2 className="text-lg font-semibold text-ink">Your categories</h2>
         <Link href="/fixed" className="text-sm font-medium text-primary">

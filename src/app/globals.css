@@ -8,6 +8,11 @@
   }
   body {
     @apply bg-bg text-ink antialiased;
+    background-color: #f4f7fc;
+  }
+  ::selection {
+    background-color: #dbeafe;
+    color: #14213d;
   }
   :focus-visible {
     outline: 2px solid theme("colors.primary.DEFAULT");

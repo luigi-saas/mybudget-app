@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Icon from "./Icon";
+import BrandMark from "./BrandMark";
 import type { IconKey } from "@/lib/types";
 import { useAuth } from "@/lib/auth-context";
 
@@ -12,6 +13,8 @@ const links: { href: string; label: string; icon: IconKey }[] = [
   { href: "/fixed", label: "Fixed", icon: "bolt" },
   { href: "/variable", label: "Variable", icon: "cart" },
   { href: "/savings", label: "Savings", icon: "piggy" },
+  { href: "/insights", label: "Insights", icon: "shield" },
+  { href: "/resources", label: "Guides", icon: "clock" },
   { href: "/history", label: "History", icon: "clock" },
 ];
 
@@ -28,10 +31,11 @@ export default function AppNav() {
       {/* Desktop sidebar */}
       <aside className="hidden w-60 shrink-0 border-r border-border bg-surface p-5 md:flex md:flex-col">
         <div className="mb-8 flex items-center gap-2 px-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-white">
-            <Icon name="piggy" size={18} />
+          <BrandMark size="sm" />
+          <div>
+            <p className="text-sm font-semibold text-ink">Budgetly</p>
+            <p className="text-xs text-muted">Your money, clarified</p>
           </div>
-          <span className="text-lg font-bold text-ink">Budgetly</span>
         </div>
         <nav className="flex flex-1 flex-col gap-1">
           {links.map((l) => {

@@ -5,31 +5,31 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        bg: "#F3F6FA",
+        bg: "#F4F7FC",
         surface: "#FFFFFF",
-        ink: "#0F1B2B",
-        muted: "#64748B",
-        border: "#E7ECF1",
+        ink: "#14213D",
+        muted: "#5F6F81",
+        border: "#E5ECF5",
         primary: {
-          DEFAULT: "#1CA7EC",
-          dark: "#0E86C9",
-          light: "#E6F5FD",
+          DEFAULT: "#2563EB",
+          dark: "#1D4ED8",
+          light: "#EAF2FF",
         },
         success: {
-          DEFAULT: "#17B26A",
-          light: "#E7F9F0",
+          DEFAULT: "#16A34A",
+          light: "#EAF8EE",
         },
         warn: {
-          DEFAULT: "#FF8A3D",
-          light: "#FFF1E6",
+          DEFAULT: "#F59E0B",
+          light: "#FFF6E6",
         },
         danger: {
-          DEFAULT: "#EF4E5F",
-          light: "#FDECEE",
+          DEFAULT: "#EF4444",
+          light: "#FDECEC",
         },
         violet: {
-          DEFAULT: "#7C6CF0",
-          light: "#EEEBFD",
+          DEFAULT: "#7C3AED",
+          light: "#F4ECFF",
         },
       },
       borderRadius: {
@@ -38,8 +38,8 @@ const config: Config = {
         "2xl": "28px",
       },
       boxShadow: {
-        card: "0 8px 24px rgba(15, 27, 43, 0.06)",
-        pop: "0 12px 32px rgba(15, 27, 43, 0.10)",
+        card: "0 10px 30px rgba(20, 33, 61, 0.06)",
+        pop: "0 18px 40px rgba(20, 33, 61, 0.10)",
       },
       fontFamily: {
         sans: [

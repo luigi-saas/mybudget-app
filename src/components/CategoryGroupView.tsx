@@ -10,8 +10,11 @@ import {
   deleteCategory,
   deleteTransaction,
   seedNotionTemplate,
+  seedSmartBudgetTemplate,
+  updateCategory,
+  updateTransaction,
 } from "@/lib/firestore";
-import type { Account, CategoryColor, Group, IconKey } from "@/lib/types";
+import type { Account, Category, CategoryColor, Group, IconKey, Transaction } from "@/lib/types";
 import CategoryCard from "./CategoryCard";
 import Modal from "./Modal";
 import Icon from "./Icon";
@@ -34,7 +37,7 @@ export default function CategoryGroupView({
 }) {
   const { user } = useAuth();
   const { month } = useMonth();
-  const { fixedCategories, variableCategories, spentByCategory, monthTransactions } =
+  const { fixedCategories, variableCategories, spentByCategory, monthTransactions, totalIncome } =
     useBudgetData();
   const categories = group === "fixed" ? fixedCategories : variableCategories;
   const [search, setSearch] = useState("");
@@ -44,6 +47,8 @@ export default function CategoryGroupView({
 
   const [catModalOpen, setCatModalOpen] = useState(false);
   const [txModalOpen, setTxModalOpen] = useState(false);
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
+  const [editingTransactionId, setEditingTransactionId] = useState<string | null>(null);
 
   // category form state
   const [name, setName] = useState("");
@@ -58,92 +63,172 @@ export default function CategoryGroupView({
   const [txAccount, setTxAccount] = useState<Account>("wallet");
   const [txDate, setTxDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [txNote, setTxNote] = useState("");
-  const [importing, setImporting] = useState(false);
+  const [importing, setImporting] = useState<"notion" | "smart" | null>(null);
+
+  function resetCategoryForm() {
+    setName("");
+    setBudget("");
+    setIcon("cart");
+    setColor("primary");
+    setEditingCategoryId(null);
+  }
+
+  function openNewCategoryModal() {
+    resetCategoryForm();
+    setCatModalOpen(true);
+  }
+
+  function openEditCategoryModal(category: Category) {
+    setEditingCategoryId(category.id);
+    setName(category.name);
+    setBudget(String(category.budget));
+    setIcon(category.icon);
+    setColor(category.color);
+    setCatModalOpen(true);
+  }
 
   async function handleAddCategory(e: FormEvent) {
     e.preventDefault();
     if (!user || !name || !budget) return;
-    await addCategory(user.uid, {
-      name,
-      group,
-      budget: Number(budget),
-      icon,
-      color,
-    });
-    setName("");
-    setBudget("");
+    if (editingCategoryId) {
+      await updateCategory(user.uid, editingCategoryId, {
+        name,
+        budget: Number(budget),
+        icon,
+        color,
+      });
+    } else {
+      await addCategory(user.uid, {
+        name,
+        group,
+        budget: Number(budget),
+        icon,
+        color,
+      });
+    }
+    resetCategoryForm();
     setCatModalOpen(false);
+  }
+
+  function resetTransactionForm() {
+    setTxName("");
+    setTxAmount("");
+    setTxCategoryId(categories[0]?.id || "");
+    setTxAccount("wallet");
+    setTxDate(new Date().toISOString().slice(0, 10));
+    setTxNote("");
+    setEditingTransactionId(null);
+  }
+
+  function openNewTransactionModal() {
+    resetTransactionForm();
+    setTxModalOpen(true);
+  }
+
+  function openEditTransactionModal(transaction: Transaction) {
+    setEditingTransactionId(transaction.id);
+    setTxName(transaction.name);
+    setTxAmount(String(transaction.amount));
+    setTxCategoryId(transaction.categoryId);
+    setTxAccount(transaction.account);
+    setTxDate(transaction.date);
+    setTxNote(transaction.note || "");
+    setTxModalOpen(true);
   }
 
   async function handleAddTransaction(e: FormEvent) {
     e.preventDefault();
     if (!user || !txName || !txAmount || !txCategoryId) return;
-    await addTransaction(user.uid, {
-      name: txName,
-      amount: Number(txAmount),
-      categoryId: txCategoryId,
-      group,
-      account: txAccount,
-      date: txDate,
-      ...(txNote ? { note: txNote } : {}),
-    });
-    setTxName("");
-    setTxAmount("");
-    setTxNote("");
+    if (editingTransactionId) {
+      await updateTransaction(user.uid, editingTransactionId, {
+        name: txName,
+        amount: Number(txAmount),
+        categoryId: txCategoryId,
+        group,
+        account: txAccount,
+        date: txDate,
+        ...(txNote ? { note: txNote } : {}),
+      });
+    } else {
+      await addTransaction(user.uid, {
+        name: txName,
+        amount: Number(txAmount),
+        categoryId: txCategoryId,
+        group,
+        account: txAccount,
+        date: txDate,
+        ...(txNote ? { note: txNote } : {}),
+      });
+    }
+    resetTransactionForm();
     setTxModalOpen(false);
   }
 
-  async function handleImportTemplate() {
+  async function handleImportTemplate(template: "notion" | "smart") {
     if (!user) return;
-    setImporting(true);
+    setImporting(template);
     try {
-      await seedNotionTemplate(user.uid);
+      if (template === "smart") {
+        await seedSmartBudgetTemplate(user.uid, totalIncome || 8500);
+      } else {
+        await seedNotionTemplate(user.uid);
+      }
     } finally {
-      setImporting(false);
+      setImporting(null);
     }
   }
 
   return (
     <main className="mx-auto max-w-5xl px-5 py-8">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-ink">{title}</h1>
-          <p className="mt-1 text-sm text-muted">{subtitle}</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <MonthSwitcher />
-          <button
-            onClick={() => setCatModalOpen(true)}
-            className="rounded-lg border border-border bg-surface px-4 py-2 text-sm font-semibold text-ink hover:bg-bg"
-          >
-            + Category
-          </button>
-          <button
-            onClick={() => {
-              setTxDate(`${month}-01`);
-              setTxModalOpen(true);
-            }}
-            disabled={categories.length === 0}
-            className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-dark disabled:opacity-50"
-          >
-            + Expense
-          </button>
+      <div className="rounded-[28px] border border-border bg-surface p-4 shadow-card sm:p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-bold text-ink">{title}</h1>
+            <p className="mt-1 text-sm text-muted">{subtitle}</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <MonthSwitcher />
+            <button
+              onClick={openNewCategoryModal}
+              className="rounded-xl border border-border bg-surface px-4 py-2 text-sm font-semibold text-ink hover:bg-bg"
+            >
+              + Category
+            </button>
+            <button
+              onClick={() => {
+                setTxDate(`${month}-01`);
+                openNewTransactionModal();
+              }}
+              disabled={categories.length === 0}
+              className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-dark disabled:opacity-50"
+            >
+              + Expense
+            </button>
+          </div>
         </div>
       </div>
 
       {categories.length === 0 ? (
-        <div className="mt-6 rounded-xl border border-dashed border-border bg-surface p-8 text-center">
+        <div className="mt-6 rounded-[28px] border border-dashed border-border bg-surface p-8 text-center shadow-card">
           <p className="text-sm text-muted">
-            No categories yet. Add one manually, or import your original
-            Notion budget template in one click.
+            No categories yet. Add one manually, or launch a smarter starter plan based on the 50/30/20 rule.
           </p>
-          <button
-            onClick={handleImportTemplate}
-            disabled={importing}
-            className="mt-4 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-dark disabled:opacity-60"
-          >
-            {importing ? "Importing…" : "Import Notion template"}
-          </button>
+          <div className="mt-4 flex flex-wrap justify-center gap-3">
+            <button
+              onClick={() => handleImportTemplate("smart")}
+              disabled={importing === "smart"}
+              className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-dark disabled:opacity-60"
+            >
+              {importing === "smart" ? "Creating…" : "Create smart template"}
+            </button>
+            <button
+              onClick={() => handleImportTemplate("notion")}
+              disabled={importing === "notion"}
+              className="rounded-xl border border-border px-4 py-2 text-sm font-semibold text-ink hover:bg-bg disabled:opacity-60"
+            >
+              {importing === "notion" ? "Importing…" : "Import Notion template"}
+            </button>
+          </div>
         </div>
       ) : (
         <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -152,6 +237,7 @@ export default function CategoryGroupView({
               key={c.id}
               category={c}
               spent={spentByCategory[c.id] || 0}
+              onEdit={() => openEditCategoryModal(c)}
               onDelete={() => user && deleteCategory(user.uid, c.id)}
             />
           ))}
@@ -174,9 +260,9 @@ export default function CategoryGroupView({
           {groupTransactions.map((t) => {
             const cat = categories.find((c) => c.id === t.categoryId);
             return (
-              <div key={t.id} className="flex items-center justify-between px-5 py-3">
+              <div key={t.id} className="flex items-center justify-between px-4 py-3 sm:px-5">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-bg text-muted">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-bg text-muted">
                     <Icon name={cat?.icon || "sparkles"} size={16} />
                   </div>
                   <div>
@@ -188,16 +274,23 @@ export default function CategoryGroupView({
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
                   <span className="text-sm font-semibold text-ink">
                     {t.amount.toLocaleString()} MAD
                   </span>
+                  <button
+                    onClick={() => openEditTransactionModal(t)}
+                    className="text-xs text-muted hover:text-primary"
+                    aria-label={`Edit ${t.name}`}
+                  >
+                    Edit
+                  </button>
                   <button
                     onClick={() => user && deleteTransaction(user.uid, t.id)}
                     className="text-xs text-muted hover:text-danger"
                     aria-label={`Delete ${t.name}`}
                   >
-                    ✕
+                    Delete
                   </button>
                 </div>
               </div>
@@ -207,7 +300,7 @@ export default function CategoryGroupView({
       )}
 
       {/* Add category modal */}
-      <Modal open={catModalOpen} onClose={() => setCatModalOpen(false)} title="New category">
+      <Modal open={catModalOpen} onClose={() => { setCatModalOpen(false); resetCategoryForm(); }} title={editingCategoryId ? "Edit category" : "New category"}>
         <form onSubmit={handleAddCategory} className="space-y-3">
           <input
             placeholder="Category name"
@@ -268,13 +361,13 @@ export default function CategoryGroupView({
             type="submit"
             className="w-full rounded-lg bg-primary py-2.5 text-sm font-semibold text-white hover:bg-primary-dark"
           >
-            Add category
+            {editingCategoryId ? "Save category" : "Add category"}
           </button>
         </form>
       </Modal>
 
       {/* Add transaction modal */}
-      <Modal open={txModalOpen} onClose={() => setTxModalOpen(false)} title="New expense">
+      <Modal open={txModalOpen} onClose={() => { setTxModalOpen(false); resetTransactionForm(); }} title={editingTransactionId ? "Edit expense" : "New expense"}>
         <form onSubmit={handleAddTransaction} className="space-y-3">
           <input
             placeholder="What was it for?"
@@ -340,7 +433,7 @@ export default function CategoryGroupView({
             type="submit"
             className="w-full rounded-lg bg-primary py-2.5 text-sm font-semibold text-white hover:bg-primary-dark"
           >
-            Add expense
+            {editingTransactionId ? "Save expense" : "Add expense"}
           </button>
         </form>
       </Modal>
