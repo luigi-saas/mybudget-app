@@ -1,0 +1,58 @@
+name: Auto bump version
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  bump-version:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 20
+
+      - name: Skip version bump commits
+        id: skip-check
+        run: |
+          echo "message=${{ github.event.head_commit.message }}" >> $GITHUB_OUTPUT
+          if [[ "${{ github.event.head_commit.message }}" == *"chore: bump version"* ]]; then
+            echo "should_bump=false" >> $GITHUB_OUTPUT
+          else
+            echo "should_bump=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Bump package version
+        if: steps.skip-check.outputs.should_bump == 'true'
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+          const pkgPath = 'package.json';
+          const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+          const [major, minor] = pkg.version.split('.').map(Number);
+          const newVersion = `${major}.${minor + 1}.0`;
+          pkg.version = newVersion;
+          fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n');
+          console.log(`Bumped package version to ${newVersion}`);
+          NODE
+
+      - name: Commit and push new version
+        if: steps.skip-check.outputs.should_bump == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git diff --exit-code -- package.json || (
+            git add package.json
+            git commit -m "chore: bump version to $(node -p \"require('./package.json').version\")"
+            git push origin main
+          )
